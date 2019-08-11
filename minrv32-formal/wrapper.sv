@@ -15,7 +15,7 @@ module rvfi_wrapper (
 	(* keep *) wire [3:0]  mem_wstrb;
 
 	minrv32 #(
-		.COMPRESSED_ISA(1),
+		.COMPRESSED_ISA(0),
 		.ENABLE_FAST_MUL(1),
 		.ENABLE_DIV(1),
 		.BARREL_SHIFTER(1)

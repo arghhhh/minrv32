@@ -1,13 +1,16 @@
-all: complete cover honest imemcheck dmemcheck checks
+all: complete cover honest imemcheck dmemcheck 
 
 
 clean:
 	rm -r complete cover honest imemcheck dmemcheck checks
 
-checks:
+checks/makefile:
 	python3 genchecks.py
-	make -C checks -j$(nproc)
+.PHONY: checks/makefile
 
+checks: checks/makefile
+	make -C checks -j$(nproc)
+.PHONY: checks
 
 complete: complete/status
 complete/status:

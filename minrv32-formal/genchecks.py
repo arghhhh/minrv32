@@ -31,7 +31,7 @@ basedir = "%s/../../riscv-formal" % os.getcwd()
 corename = "minrv32"   #os.getcwd().split("/")[-1]
 solver = "boolector"
 dumpsmt2 = False
-sbycmd = "sby"
+sbycmd = "sby -f"
 config = dict()
 
 if len(sys.argv) > 1:
@@ -461,8 +461,8 @@ with open("%s/makefile" % cfgname, "w") as mkfile:
     print(file=mkfile)
 
     for check in checks:
-        print("%s: %s/status" % (check, check), file=mkfile)
-        print("%s/status:" % check, file=mkfile)
+        print("%s: %s/PASS" % (check, check), file=mkfile)
+        print("%s/PASS:" % check, file=mkfile)
         print("\t%s %s.sby" % (sbycmd, check), file=mkfile)
         print(".PHONY: %s" % check, file=mkfile)
 
