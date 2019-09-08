@@ -91,8 +91,8 @@ module minrv32 #(
 	, output            rs2_addr_valid
 	, output            rd_addr_valid
 
-	, input      [31:0] rs1_rdata
-	, input      [31:0] rs2_rdata
+//	, input      [31:0] rs1_rdata
+//	, input      [31:0] rs2_rdata
 	, output reg [31:0] rd_wdata
 
 
@@ -157,6 +157,19 @@ always @(posedge clk) begin
 	pc <= resetn ? pc_next : PROGADDR_RESET;
 end
 
+reg [31:0] registers [ 32 ];
+always @(posedge clk) begin
+	if ( rd_addr_valid ) begin
+		registers[ rd_addr ] <= rd_wdata;
+		end
+	end
+
+wire [31:0] rs1_rdata ;
+wire [31:0] rs2_rdata ;
+
+
+assign rs1_rdata = registers[ rs1_addr ];
+assign rs2_rdata = registers[ rs2_addr ];
 
 reg [63:0] rvfi_instruction_count = 0;
 assign rvfi_order =  rvfi_instruction_count;
@@ -200,6 +213,7 @@ end
 
 	assign rvfi_valid      = 1        ;
 	assign rvfi_trap       = trap     ;
+	assign rvfi_halt       = 0        ;
 
 	assign rvfi_mem_addr   = mem_addr  ;
 	assign rvfi_mem_rmask  = mem_rmask ;
@@ -353,22 +367,6 @@ end
 
 		end
 
-/*
-		if (insn[6:0] == 7'b 00_100_11) begin // OP-IMM
-			case (insn[14:12])
-				3'b 001: begin // SLLI
-					valid = insn[31:25] == 7'b 0000000;
-				end
-				3'b 101: begin // SRLI SRAI
-					valid = (insn[31:25] == 7'b 0000000) || (insn[31:25] == 7'b 0100000);
-				end
-				default: begin
-					valid = 1;
-				end
-			endcase
-		end
-*/
-
 		if ( (insn[6:0] == 7'b 01_100_11) || (insn[6:0] == 7'b 00_100_11) ) begin // OP or OP-IMM
 			is_alu_immediate = (insn[6:0] == 7'b 00_100_11);
 			if ( is_alu_immediate ) begin
@@ -413,10 +411,10 @@ end
 								rd_wdata = rs1_value << rs2_value[4:0] ;
 							end
 							3'b010: begin // SLT set less than
-								rd_wdata = ( rs1_value ^ 32'h8000_0000 ) < ( rs2_value ^ 32'h8000_0000 ) ;
+								rd_wdata = cond_lt; // ( rs1_value ^ 32'h8000_0000 ) < ( rs2_value ^ 32'h8000_0000 ) ;
 							end
-							3'b011: begin // SLTU set less than unsigned
-								rd_wdata = rs1_value < rs2_value ;
+							3'b011: begin // SLTU set less than unsigned (with a signed extended immediate if immediate mode)
+								rd_wdata = cond_ltu; 
 							end
 							3'b100: begin // XOR
 								rd_wdata = rs1_value ^ rs2_value ;
