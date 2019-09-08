@@ -1,10 +1,11 @@
 [options]
 mode bmc
-aigsmt z3
+# aigsmt z3
 depth 20
 
 [engines]
-abc bmc3
+# abc bmc3
+smtbmc boolector
 
 [script]
 verilog_defines -D DEBUGNETS
