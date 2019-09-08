@@ -103,9 +103,9 @@ module minrv32 #(
 
 	output reg [31:0] mem_addr,
 	output reg [31:0] mem_wdata,
-	output     [ 3:0] mem_wstrb,
+	output reg [ 3:0] mem_wmask,
 	output reg [ 3:0] mem_rmask,
-	input      [31:0] mem_rdata,
+	input      [31:0] mem_rdata
 
 
 	// IRQ Interface
@@ -113,7 +113,7 @@ module minrv32 #(
 //	output reg [31:0] eoi,
 
 `ifdef RISCV_FORMAL
-	output         rvfi_valid,
+	, output         rvfi_valid,
 	output  [63:0] rvfi_order,
 	output  [31:0] rvfi_insn,
 	output         rvfi_trap,
@@ -152,13 +152,17 @@ module minrv32 #(
 //	output reg [35:0] trace_data
 );
 
+
 initial pc = PROGADDR_RESET;
 always @(posedge clk) begin
 	pc <= resetn ? pc_next : PROGADDR_RESET;
 end
 
-reg [31:0] registers [ 32 ];
+reg [31:0] registers [ 0:31 ];
 always @(posedge clk) begin
+	if ( !resetn ) begin
+		registers[ 2] <= STACKADDR;
+	end
 	if ( rd_addr_valid ) begin
 		registers[ rd_addr ] <= rd_wdata;
 		end
@@ -195,8 +199,8 @@ end
 	reg [31:0] rs1_value ;
 	reg [31:0] rs2_value ;
 
-	reg [3:0] mem_wmask;
-	assign mem_wstrb = mem_wmask;
+//	reg [3:0] mem_wmask;
+//	assign mem_wstrb = mem_wmask;
 
 
 	assign rvfi_insn = insn;
@@ -250,6 +254,25 @@ end
 	wire cond_ge  = !cond_lt;
 	wire cond_ltu = rs1_value < rs2_value;
 	wire cond_geu = !cond_ltu;
+
+
+
+reg [63:0]  csr_cycle;
+reg [63:0]  csr_time;
+reg [63:0]  csr_instret;
+
+always @(posedge clk) begin
+	if ( !resetn ) begin
+		csr_cycle   <= 0 ;
+		csr_time    <= 0 ; 
+		csr_instret <= 0 ;
+	end else begin
+		csr_cycle   <= csr_cycle   + 1 ;
+		csr_time    <= csr_time    + 1 ; 
+		csr_instret <= csr_instret + 1 ;
+	end
+end
+
 
 	always @* begin
 		valid = 0;
@@ -429,6 +452,42 @@ end
 					end
 				end
 			endcase
+		end
+		if (insn[6:0] == 7'b 11_100_11) begin 
+			if ( insn[19:15] == 0 && insn[14:12] == 3'b010 ) begin
+				case (insn[31:20])
+					12'hC00: begin
+						valid = 1 ;
+						rd_addr_valid = 1;
+						rd_wdata = csr_cycle[31:0] ;
+					end
+					12'hC01: begin
+						valid = 1 ;
+						rd_addr_valid = 1;
+						rd_wdata = csr_time[31:0] ;
+					end
+					12'hC02: begin
+						valid = 1 ;
+						rd_addr_valid = 1;
+						rd_wdata = csr_instret[31:0] ;
+					end
+					12'hC80: begin
+						valid = 1 ;
+						rd_addr_valid = 1;
+						rd_wdata = csr_cycle[63:32] ;
+					end
+					12'hC81: begin
+						valid = 1 ;
+						rd_addr_valid = 1;
+						rd_wdata = csr_time[63:32] ;
+					end
+					12'hC82: begin
+						valid = 1 ;
+						rd_addr_valid = 1;
+						rd_wdata = csr_instret[63:32] ;
+					end
+				endcase
+			end
 		end
 	end
 
