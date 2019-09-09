@@ -17,7 +17,7 @@ module testbench;
 	wire mem_ready;
 	wire [31:0] mem_addr;
 	wire [31:0] mem_wdata;
-	wire [3:0] mem_wmask;
+	wire [3:0] mem_wstrb;
 	wire [3:0] mem_rmask;
 	wire [31:0] mem_rdata;
 
@@ -40,7 +40,7 @@ module testbench;
 		.mem_addr    (mem_addr   ),
 		.mem_wdata   (mem_wdata  ),
 		.mem_rmask   (mem_rmask  ),
-		.mem_wmask   (mem_wmask  ),
+		.mem_wstrb   (mem_wstrb  ),
 		.mem_rdata   (mem_rdata  ),
 
 		.pc( pc )
@@ -73,7 +73,7 @@ module testbench;
 	assign insn[31:24] = memory[pc + 3] ;
 
 	always @(posedge clk) begin
-		if (mem_wmask != 0 ) begin
+		if (mem_wstrb != 0 ) begin
 			case (mem_addr)
 				32'h1000_0000: begin
 `ifndef TIMING
@@ -82,10 +82,10 @@ module testbench;
 `endif
 				end
 				default: begin
-					if (mem_wmask[0]) memory[mem_addr + 0] <= mem_wdata[ 7: 0];
-					if (mem_wmask[1]) memory[mem_addr + 1] <= mem_wdata[15: 8];
-					if (mem_wmask[2]) memory[mem_addr + 2] <= mem_wdata[23:16];
-					if (mem_wmask[3]) memory[mem_addr + 3] <= mem_wdata[31:24];
+					if (mem_wstrb[0]) memory[mem_addr + 0] <= mem_wdata[ 7: 0];
+					if (mem_wstrb[1]) memory[mem_addr + 1] <= mem_wdata[15: 8];
+					if (mem_wstrb[2]) memory[mem_addr + 2] <= mem_wdata[23:16];
+					if (mem_wstrb[3]) memory[mem_addr + 3] <= mem_wdata[31:24];
 				end
 			endcase
 		end

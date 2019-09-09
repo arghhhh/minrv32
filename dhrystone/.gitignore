@@ -1,0 +1,7 @@
+*.o
+*.elf
+*.d
+*.vcd
+*.vvp
+dhry.hex
+dhry.map
