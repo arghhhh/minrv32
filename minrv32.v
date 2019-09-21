@@ -79,8 +79,11 @@ module minrv32 #(
 	input clk, resetn,
 	output  trap
 
-	, output reg [31:0] pc
+	, input      [31:0] pc
 	, output reg [31:0] pc_next
+
+	, output     [31:0] insn_addr
+
 
 	, input [31:0] insn
 
@@ -91,8 +94,8 @@ module minrv32 #(
 	, output            rs2_addr_valid
 	, output            rd_addr_valid
 
-//	, input      [31:0] rs1_rdata
-//	, input      [31:0] rs2_rdata
+	, input      [31:0] rs1_rdata
+	, input      [31:0] rs2_rdata
 	, output reg [31:0] rd_wdata
 
 
@@ -105,8 +108,11 @@ module minrv32 #(
 	output reg [31:0] mem_wdata,
 	output reg [ 3:0] mem_wstrb,
 	output reg [ 3:0] mem_rmask,
-	input      [31:0] mem_rdata
+	input      [31:0] mem_rdata,
 
+	input      [63:0] csr_time,
+	input      [63:0] csr_cycle,
+	input      [63:0] csr_instret
 
 	// IRQ Interface
 //	input      [31:0] irq,
@@ -154,43 +160,12 @@ module minrv32 #(
 
 
 
+assign insn_addr = { pc[31:1], 1'b0 };
 
-reg [63:0]  csr_cycle;
-reg [63:0]  csr_time;
-reg [63:0]  csr_instret;
 
-always @(posedge clk) begin
-	if ( !resetn ) begin
-		csr_cycle   <= 0 ;
-		csr_time    <= 0 ; 
-		csr_instret <= 0 ;
-	end else begin
-		csr_cycle   <= csr_cycle   + 1 ;
-		csr_time    <= csr_time    + 1 ; 
-		csr_instret <= csr_instret + 1 ;
-	end
-end
 
-initial pc = PROGADDR_RESET;
-always @(posedge clk) begin
-	pc <= resetn ? pc_next : PROGADDR_RESET;
-end
 
-reg [31:0] registers [ 0:31 ];
-always @(posedge clk) begin
-	if ( !resetn ) begin
-		registers[ 2] <= STACKADDR;
-	end
-	if ( rd_addr_valid ) begin
-		registers[ rd_addr ] <= rd_wdata;
-		end
-	end
 
-wire [31:0] rs1_rdata ;
-wire [31:0] rs2_rdata ;
-
-assign rs1_rdata = registers[ rs1_addr ];
-assign rs2_rdata = registers[ rs2_addr ];
 
 reg [63:0] rvfi_instruction_count = 0;
 assign rvfi_order =  rvfi_instruction_count;
@@ -228,7 +203,7 @@ end
 
 
 	assign rvfi_insn = insn;
-	assign rvfi_pc_rdata = pc;
+	assign rvfi_pc_rdata = insn_addr;
 	assign rvfi_pc_wdata = pc_next;
 
 	assign rvfi_rs1_addr   = rs1_addr  ;
@@ -269,8 +244,8 @@ end
 	wire [31:0] immediate_for_jal = { {12{insn[31]}}, insn[19:12], insn[20], insn[30:21], 1'b0 };
 	wire [31:0] immediate_for_branches = { {20{insn[31]}}, insn[7], insn[ 30:25], insn[11:8], 1'b0 };
 
-	wire [31:0] pc_next_no_branch = pc + 4;
-	wire [31:0] pc_next_branch = ( pc + immediate_for_branches ) & 32'hFFFF_FFFE;
+	wire [31:0] pc_next_no_branch = insn_addr + 4;
+	wire [31:0] pc_next_branch = ( insn_addr + immediate_for_branches ) & 32'hFFFF_FFFE;
 
 
 	wire cond_eq  = rs1_value == rs2_value ;
@@ -311,13 +286,13 @@ end
 		if (insn_opcode == 7'b 00_101_11) begin
 			valid = 1; // AUIPC add upper immediate program counter
 			rd_addr_valid  = 1 ;
-			rd_wdata = { insn[31:12], 12'b0 } + pc;
+			rd_wdata = { insn[31:12], 12'b0 } + insn_addr;
 		end
 		if (insn_opcode == 7'b 11_011_11) begin
 			valid = 1; // JAL jump and link
 			rd_addr_valid  = 1 ;
 			rd_wdata = pc_next_no_branch;
-			pc_next = pc + immediate_for_jal;
+			pc_next = insn_addr + immediate_for_jal;
 			gen_trap = |pc_next[1:0];
 		end
 		if (insn_opcode == 7'b 11_001_11) begin // JALR jump and link register
@@ -430,6 +405,15 @@ end
 						rd_wdata = { {32{rs1_value[31]}}, rs1_value } >> rs2_value[4:0];
 					end
 				end
+				3'b001: begin 
+					if ( (!is_alu_immediate && insn_funct7 == 7'b 0000000 ) || ( is_alu_immediate && insn_funct7 == 7'b 0000000 ) ) begin 
+						valid = 1; // SLLI
+						rs1_addr_valid = 1 ;
+						rs2_addr_valid = !is_alu_immediate ;
+						rd_addr_valid  = 1 ;
+						rd_wdata = rs1_value << rs2_value[4:0] ;
+					end
+				end
 				default: begin
 					if ( is_alu_immediate || insn_funct7 == 7'b 0000000 ) begin
 						valid = 1;
@@ -437,9 +421,9 @@ end
 						rs2_addr_valid = !is_alu_immediate ;
 						rd_addr_valid  = 1 ;
 						case (insn_funct3)
-							3'b001: begin // SLL
-								rd_wdata = rs1_value << rs2_value[4:0] ;
-							end
+				//			3'b001: begin // SLL
+				//				rd_wdata = rs1_value << rs2_value[4:0] ;
+				//			end
 							3'b010: begin // SLT set less than
 								rd_wdata = cond_lt;
 							end
@@ -494,7 +478,7 @@ end
 						rd_wdata = csr_instret[63:32] ;
 					end
 				endcase
-			end
+				end
 		end
 	end
 

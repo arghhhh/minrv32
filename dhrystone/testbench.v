@@ -21,8 +21,63 @@ module testbench;
 	wire [3:0] mem_rmask;
 	wire [31:0] mem_rdata;
 
-	wire [31:0] pc;
+	reg  [31:0] pc;
+	wire [31:0] pc_next;
+	wire [31:0] insn_addr;
+
 	wire [31:0] insn;
+
+
+
+reg [63:0]  csr_cycle;
+reg [63:0]  csr_time;
+reg [63:0]  csr_instret;
+
+always @(posedge clk) begin
+	if ( !resetn ) begin
+		csr_cycle   <= 0 ;
+		csr_time    <= 0 ; 
+		csr_instret <= 0 ;
+	end else begin
+		csr_cycle   <= csr_cycle   + 1 ;
+		csr_time    <= csr_time    + 1 ; 
+		csr_instret <= csr_instret + 1 ;
+	end
+end
+
+localparam PROGADDR_RESET = 'h10000;
+localparam STACKADDR      = 'h10000;
+
+
+initial pc = PROGADDR_RESET;
+always @(posedge clk) begin
+	pc <= resetn ? pc_next : PROGADDR_RESET;
+end
+
+wire  [ 4:0] rs1_addr         ;
+wire  [ 4:0] rs2_addr         ;
+wire  [ 4:0] rd_addr          ;
+wire         rs1_addr_valid   ;
+wire         rs2_addr_valid   ;
+wire         rd_addr_valid    ;
+wire  [31:0] rd_wdata         ;
+wire  [31:0] rs1_rdata        ;
+wire  [31:0] rs2_rdata        ;
+
+
+reg [31:0] registers [ 0:31 ];
+always @(posedge clk) begin
+	if ( !resetn ) begin
+		registers[ 2] <= STACKADDR;
+	end
+	if ( rd_addr_valid ) begin
+		registers[ rd_addr ] <= rd_wdata;
+	end
+end
+
+assign rs1_rdata = registers[ rs1_addr ];
+assign rs2_rdata = registers[ rs2_addr ];
+
 
 	minrv32 #(
 		.BARREL_SHIFTER(1),
@@ -43,8 +98,25 @@ module testbench;
 		.mem_wstrb   (mem_wstrb  ),
 		.mem_rdata   (mem_rdata  ),
 
-		.pc( pc )
+		  .pc        ( pc )
+		, .pc_next   ( pc_next )
+		, .insn_addr ( insn_addr )
+
 		, .insn( insn )
+
+		, .csr_cycle  ( csr_cycle   )
+		, .csr_time   ( csr_time    )
+		, .csr_instret( csr_instret )
+
+		, .rs1_addr        (  rs1_addr       )
+		, .rs2_addr        (  rs2_addr       )
+		, .rd_addr         (  rd_addr        )
+		, .rs1_addr_valid  (  rs1_addr_valid )
+		, .rs2_addr_valid  (  rs2_addr_valid )
+		, .rd_addr_valid   (  rd_addr_valid  )
+		, .rs1_rdata       (  rs1_rdata      )
+		, .rs2_rdata       (  rs2_rdata      )
+		, .rd_wdata        (  rd_wdata       )
 
 
 //		.mem_la_read (mem_la_read ),
@@ -67,10 +139,10 @@ module testbench;
 	assign mem_rdata[23:16] = mem_rmask[2] ? memory[mem_addr + 2] : 'bx;
 	assign mem_rdata[31:24] = mem_rmask[3] ? memory[mem_addr + 3] : 'bx;
 
-	assign insn[ 7: 0] = memory[pc + 0] ;
-	assign insn[15: 8] = memory[pc + 1] ;
-	assign insn[23:16] = memory[pc + 2] ;
-	assign insn[31:24] = memory[pc + 3] ;
+	assign insn[ 7: 0] = memory[insn_addr + 0] ;
+	assign insn[15: 8] = memory[insn_addr + 1] ;
+	assign insn[23:16] = memory[insn_addr + 2] ;
+	assign insn[31:24] = memory[insn_addr + 3] ;
 
 	always @(posedge clk) begin
 		if (mem_wstrb != 0 ) begin
