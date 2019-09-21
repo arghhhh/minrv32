@@ -76,14 +76,13 @@ module minrv32 #(
 	parameter [31:0] PROGADDR_IRQ = 32'h 0000_0010,
 	parameter [31:0] STACKADDR = 32'h ffff_ffff
 ) (
-	input clk, resetn,
+
 	output  trap
 
 	, input      [31:0] pc
 	, output reg [31:0] pc_next
 
 	, output     [31:0] insn_addr
-
 
 	, input [31:0] insn
 
@@ -98,21 +97,19 @@ module minrv32 #(
 	, input      [31:0] rs2_rdata
 	, output reg [31:0] rd_wdata
 
+	, output reg        mem_valid
+	, output reg        mem_instr
+	, input             mem_ready
 
+	, output reg [31:0] mem_addr
+	, output reg [31:0] mem_wdata
+	, output reg [ 3:0] mem_wstrb
+	, output reg [ 3:0] mem_rmask
+	, input      [31:0] mem_rdata
 
-	, output reg      mem_valid,
-	output reg        mem_instr,
-	input             mem_ready,
-
-	output reg [31:0] mem_addr,
-	output reg [31:0] mem_wdata,
-	output reg [ 3:0] mem_wstrb,
-	output reg [ 3:0] mem_rmask,
-	input      [31:0] mem_rdata,
-
-	input      [63:0] csr_time,
-	input      [63:0] csr_cycle,
-	input      [63:0] csr_instret
+	, input      [63:0] csr_time
+	, input      [63:0] csr_cycle
+	, input      [63:0] csr_instret
 
 	// IRQ Interface
 //	input      [31:0] irq,
@@ -150,7 +147,7 @@ module minrv32 #(
 	output  [63:0] rvfi_csr_minstret_rmask,
 	output  [63:0] rvfi_csr_minstret_wmask,
 	output  [63:0] rvfi_csr_minstret_rdata,
-	output  [63:0] rvfi_csr_minstret_wdata,
+	output  [63:0] rvfi_csr_minstret_wdata
 `endif
 
 	// Trace Interface
@@ -160,19 +157,9 @@ module minrv32 #(
 
 
 
-assign insn_addr = { pc[31:1], 1'b0 };
+	assign insn_addr = { pc[31:1], 1'b0 };
 
-
-
-
-
-
-reg [63:0] rvfi_instruction_count = 0;
-assign rvfi_order =  rvfi_instruction_count;
-always @(posedge clk) begin
-	rvfi_instruction_count <= resetn ? rvfi_instruction_count+1 : 0;
-end
-
+	assign rvfi_order = csr_instret;
 
 	reg valid;
 	reg gen_trap;

@@ -86,21 +86,19 @@ assign rs2_rdata = registers[ rs2_addr ];
 		.PROGADDR_RESET('h10000),
 		.STACKADDR('h10000)
 	) uut (
-		.clk         (clk        ),
-		.resetn      (resetn     ),
-		.trap        (trap       ),
-		.mem_valid   (mem_valid  ),
-		.mem_instr   (mem_instr  ),
-		.mem_ready   (mem_ready  ),
-		.mem_addr    (mem_addr   ),
-		.mem_wdata   (mem_wdata  ),
-		.mem_rmask   (mem_rmask  ),
-		.mem_wstrb   (mem_wstrb  ),
-		.mem_rdata   (mem_rdata  ),
+		  .trap        (trap       )
+		, .mem_valid   (mem_valid  )
+		, .mem_instr   (mem_instr  )
+		, .mem_ready   (mem_ready  )
+		, .mem_addr    (mem_addr   )
+		, .mem_wdata   (mem_wdata  )
+		, .mem_rmask   (mem_rmask  )
+		, .mem_wstrb   (mem_wstrb  )
+		, .mem_rdata   (mem_rdata  )
 
-		  .pc        ( pc )
-		, .pc_next   ( pc_next )
-		, .insn_addr ( insn_addr )
+		, .pc          ( pc        )
+		, .pc_next     ( pc_next   )
+		, .insn_addr   ( insn_addr )
 
 		, .insn( insn )
 
@@ -118,12 +116,6 @@ assign rs2_rdata = registers[ rs2_addr ];
 		, .rs2_rdata       (  rs2_rdata      )
 		, .rd_wdata        (  rd_wdata       )
 
-
-//		.mem_la_read (mem_la_read ),
-//		.mem_la_write(mem_la_write),
-//		.mem_la_addr (mem_la_addr ),
-//		.mem_la_wdata(mem_la_wdata),
-//		.mem_la_wstrb(mem_la_wstrb)
 	);
 
 	reg [7:0] memory [0:256*1024-1];

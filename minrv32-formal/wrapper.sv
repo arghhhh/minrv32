@@ -1,3 +1,5 @@
+
+
 module rvfi_wrapper (
 	input         clock,
 	input         reset,
@@ -50,16 +52,24 @@ always @(posedge clk) begin
 end
 
 
-`ifndef RISCV_FORMAL_BLACKBOX_REGS
+// `ifndef RISCV_FORMAL_BLACKBOX_REGS
 	assign rs1_rdata = registers[ rs1_addr ];
 	assign rs2_rdata = registers[ rs2_addr ];
-`else
-	rs1_rdata = decoded_rs1 ? $anyseq : 0;
-	rs2_rdata = decoded_rs2 ? $anyseq : 0;
-`endif
+// `else
+//	rs1_rdata = decoded_rs1 ? $anyseq : 0;
+//	rs2_rdata = decoded_rs2 ? $anyseq : 0;
+// `endif
 
 
+reg [63:0]  csr_instret;
 
+always @(posedge clk) begin
+	if ( reset ) begin
+		csr_instret <= 0 ;
+	end else begin
+		csr_instret <= csr_instret + 1 ;
+	end
+end
 
 
 	minrv32 #(
@@ -68,9 +78,9 @@ end
 		.ENABLE_DIV(1),
 		.BARREL_SHIFTER(1)
 	) uut (
-		  .clk       (clock    )
-		, .resetn    (!reset   )
-		, .trap      (trap     )
+//		  .clk       (clock    )
+//		, .resetn    (!reset   )
+		  .trap      (trap     )
 
 		, .mem_valid (mem_valid)
 		, .mem_instr (mem_instr)
@@ -92,6 +102,12 @@ end
 		, .rs1_rdata       (  rs1_rdata      )
 		, .rs2_rdata       (  rs2_rdata      )
 		, .rd_wdata        (  rd_wdata       )
+
+		, .csr_cycle  (    )
+		, .csr_time   (     )
+		, .csr_instret( csr_instret )
+
+
 
 		, `RVFI_CONN
 	);

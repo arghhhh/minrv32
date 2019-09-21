@@ -452,12 +452,22 @@ def checks_key(check):
     return "9998-%s" % check
 
 with open("%s/makefile" % cfgname, "w") as mkfile:
-    print("all:", end="", file=mkfile)
+    print("all: insn consistency", file=mkfile)
 
-    checks = list(sorted(consistency_checks | instruction_checks, key=checks_key))
-
+    print("insn:", end="", file=mkfile)
+    checks = list(sorted( instruction_checks, key=checks_key))
     for check in checks:
         print(" %s" % check, end="", file=mkfile)
+
+    print(file=mkfile)
+    print("consistency:", end="", file=mkfile)
+    checks = list(sorted( consistency_checks, key=checks_key))
+    for check in checks:
+        print(" %s" % check, end="", file=mkfile)
+
+    print(file=mkfile)
+    checks = list(sorted(consistency_checks | instruction_checks, key=checks_key))
+
     print(file=mkfile)
 
     for check in checks:
