@@ -78,9 +78,9 @@ end
 		.ENABLE_DIV(1),
 		.BARREL_SHIFTER(1)
 	) uut (
-//		  .clk       (clock    )
-//		, .resetn    (!reset   )
-		  .trap      (trap     )
+		  .clk       (clock    )
+		, .resetn    (!reset   )
+		, .trap      (trap     )
 
 		, .mem_valid (mem_valid)
 		, .mem_instr (mem_instr)

@@ -8,7 +8,7 @@ all: complete cover honest imemcheck dmemcheck
 
 
 clean:
-	rm -r complete cover honest imemcheck dmemcheck checks
+	rm -r complete cover honest imemcheck dmemcheck insn consistency
 
 checks/makefile: $(MINRV_SRCS)
 	python3 genchecks.py
@@ -17,6 +17,14 @@ checks/makefile: $(MINRV_SRCS)
 checks: checks/makefile $(MINRV_SRCS)
 	make -C checks -j$(nproc)
 .PHONY: checks
+
+insn: checks/makefile $(MINRV_SRCS)
+	make -C checks -j$(nproc) insn
+
+consistency: checks/makefile $(MINRV_SRCS)
+	make -C checks consistency
+
+
 
 complete: complete/status
 complete/status: $(MINRV_SRCS)

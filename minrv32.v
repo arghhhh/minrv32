@@ -77,7 +77,9 @@ module minrv32 #(
 	parameter [31:0] STACKADDR = 32'h ffff_ffff
 ) (
 
-	output  trap
+	input clk
+	, input resetn
+	, output  trap
 
 	, input      [31:0] pc
 	, output reg [31:0] pc_next
