@@ -4,11 +4,11 @@ MINRV_SRCS:= ../minrv32.v
 
 
 
-all: complete cover honest imemcheck dmemcheck 
+all: complete cover honest imemcheck dmemcheck insn consistency
 
 
 clean:
-	rm -r complete cover honest imemcheck dmemcheck insn consistency
+	rm -r complete cover honest imemcheck dmemcheck checks
 
 checks/makefile: $(MINRV_SRCS)
 	python3 genchecks.py
@@ -18,10 +18,10 @@ checks: checks/makefile $(MINRV_SRCS)
 	make -C checks -j$(nproc)
 .PHONY: checks
 
-insn: checks/makefile $(MINRV_SRCS)
+insn: $(MINRV_SRCS)
 	make -C checks -j$(nproc) insn
 
-consistency: checks/makefile $(MINRV_SRCS)
+consistency: $(MINRV_SRCS)
 	make -C checks consistency
 
 

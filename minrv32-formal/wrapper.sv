@@ -16,6 +16,7 @@ module rvfi_wrapper (
 	(* keep *) wire [31:0] mem_wdata;
 	(* keep *) wire [3:0]  mem_wstrb;
 
+/*
 	reg [31:0] pc;
 	wire [31:0] pc_next;
 
@@ -28,8 +29,9 @@ end
 
 
 localparam STACKADDR      = 'h10000;
+*/
 
-
+/*
 wire  [ 4:0] rs1_addr         ;
 wire  [ 4:0] rs2_addr         ;
 wire  [ 4:0] rd_addr          ;
@@ -50,7 +52,8 @@ always @(posedge clk) begin
 		registers[ rd_addr ] <= rd_wdata;
 	end
 end
-
+*/
+/*
 
 // `ifndef RISCV_FORMAL_BLACKBOX_REGS
 	assign rs1_rdata = registers[ rs1_addr ];
@@ -59,8 +62,9 @@ end
 //	rs1_rdata = decoded_rs1 ? $anyseq : 0;
 //	rs2_rdata = decoded_rs2 ? $anyseq : 0;
 // `endif
+*/
 
-
+/*
 reg [63:0]  csr_instret;
 
 always @(posedge clk) begin
@@ -70,14 +74,15 @@ always @(posedge clk) begin
 		csr_instret <= csr_instret + 1 ;
 	end
 end
+*/
 
 
-	minrv32 #(
+	minrv32 /* #(
 		.COMPRESSED_ISA(0),
 		.ENABLE_FAST_MUL(1),
 		.ENABLE_DIV(1),
 		.BARREL_SHIFTER(1)
-	) uut (
+	) */ uut (
 		  .clk       (clock    )
 		, .resetn    (!reset   )
 		, .trap      (trap     )
@@ -90,9 +95,10 @@ end
 		, .mem_wstrb (mem_wstrb)
 		, .mem_rdata (mem_rdata)
 
-		, .pc        ( pc )
-		, .pc_next   ( pc_next )
+//		, .pc        ( pc )
+//		, .pc_next   ( pc_next )
 
+/*
 		, .rs1_addr        (  rs1_addr       )
 		, .rs2_addr        (  rs2_addr       )
 		, .rd_addr         (  rd_addr        )
@@ -102,11 +108,12 @@ end
 		, .rs1_rdata       (  rs1_rdata      )
 		, .rs2_rdata       (  rs2_rdata      )
 		, .rd_wdata        (  rd_wdata       )
-
+*/
+/*
 		, .csr_cycle  (    )
 		, .csr_time   (     )
 		, .csr_instret( csr_instret )
-
+*/
 
 
 		, `RVFI_CONN
