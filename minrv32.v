@@ -65,6 +65,7 @@ module minrv32
 	, output     [31:0] insn_addr
 
 	, input [31:0] insn
+	, input        insn_valid
 /*
 
 	, output     [ 4:0] rs1_addr 
@@ -136,7 +137,7 @@ module minrv32
 );
 
 
-
+`ifdef RVFI_MONITOR
 
 rvfi_monitor rvfi_monitor(
     /*  input           */  .clk                      ( clk                     )  ,
@@ -172,8 +173,9 @@ rvfi_monitor rvfi_monitor(
 	/*  input   [63:0]  */  .rvfi_csr_minstret_wdata  ( rvfi_csr_minstret_wdata )  
 );
 
+`endif
 
-	wire  insn_valid = 1 ;  // for now, insn is always valid
+//	wire  insn_valid = 1 ;  // for now, insn is always valid
 	wire  rs1_ready   ;
 	wire  rs2_ready   ;
 	wire  rd_ready  = 1  ;  // for now, write destination is always ready
@@ -185,6 +187,8 @@ reg [63:0]  csr_cycle;
 reg [63:0]  csr_time;
 reg [63:0]  csr_instret;
 
+wire insn_complete;
+
 always @(posedge clk) begin
 	if ( !resetn ) begin
 		csr_cycle   <= 0 ;
@@ -193,14 +197,14 @@ always @(posedge clk) begin
 	end else begin
 		csr_cycle   <= csr_cycle   + 1 ;
 		csr_time    <= csr_time    + 1 ; 
-		csr_instret <= csr_instret + 1 ;
+		if ( insn_complete ) csr_instret <= csr_instret + 1 ;
 	end
 end
 
 localparam PROGADDR_RESET = 'h10000;
 localparam STACKADDR      = 'h10000;
 
-wire insn_complete;
+
 
 reg [31:0] pc;
 wire [31:0] pc_next;
@@ -233,7 +237,7 @@ always @(posedge clk) begin
 		registers[ 0] <= 0;
 		registers[ 2] <= STACKADDR;
 	end
-	if ( rd_request ) begin
+	if ( rd_request && insn_complete ) begin
 		registers[ rd_addr ] <= rd_wdata;
 	end
 end
@@ -588,7 +592,7 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 
 	reg insn_decode_valid;
 	reg gen_trap;
-	assign trap = !insn_decode_valid || gen_trap;
+	assign trap = insn_valid && ( !insn_decode_valid || gen_trap );
 
 
 	wire [6:0] insn_field_opcode = insn[6:0];
@@ -622,9 +626,10 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 	assign rvfi_rs2_rdata  = ( rs2_addr_valid ) ? rs2_value : 32'b0 ;
 	assign rvfi_rd_wdata   = ( rd_addr_valid && ( insn_field_rd != 0 ) ) ? rd_wdata  : 32'b0 ;
 
-	assign rvfi_valid      = 1        ;
+	// even the combo version might not complete in one cycle if mem_ready is held low...
+	assign rvfi_valid      = insn_complete        ;
 	assign rvfi_trap       = trap     ;
-	assign rvfi_halt       = 0        ;
+	assign rvfi_halt       = trap      ; // for the liveness check.. maybe revisit if trap handling is added
 
 	assign rvfi_mem_addr   = mem_addr  ;
 	assign rvfi_mem_rmask  = mem_rmask ;

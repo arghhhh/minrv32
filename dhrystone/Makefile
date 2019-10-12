@@ -24,7 +24,7 @@ timing.txt: timing.vvp dhry.hex
 	vvp -N timing.vvp > timing.txt
 
 testbench.vvp: testbench.v ../minrv32.v ../rvfi_monitor.v
-	iverilog -o testbench.vvp testbench.v ../minrv32.v ../rvfi_monitor.v
+	iverilog -DRVFI_MONITOR -o testbench.vvp testbench.v ../minrv32.v ../rvfi_monitor.v
 	chmod -x testbench.vvp
 
 testbench_nola.vvp: testbench_nola.v ../minrv32.v

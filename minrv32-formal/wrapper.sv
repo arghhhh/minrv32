@@ -76,6 +76,8 @@ always @(posedge clk) begin
 end
 */
 
+wire [31:0] insn;
+wire        insn_valid;
 
 	minrv32 /* #(
 		.COMPRESSED_ISA(0),
@@ -86,6 +88,10 @@ end
 		  .clk       (clock    )
 		, .resetn    (!reset   )
 		, .trap      (trap     )
+
+		, .insn       ( insn    )
+		, .insn_valid ( insn_valid )
+
 
 		, .mem_valid (mem_valid)
 		, .mem_instr (mem_instr)
@@ -121,9 +127,20 @@ end
 
 `ifdef PICORV32_FAIRNESS
 	reg [2:0] mem_wait = 0;
+	reg [2:0] insn_valid_history = ~0;
 	always @(posedge clock) begin
 		mem_wait <= {mem_wait, mem_valid && !mem_ready};
-		assume (~mem_wait || trap);
+//		assume (~mem_wait || trap);
+		assume (~mem_wait );
+
+		insn_valid_history <= { insn_valid_history, insn_valid };
+		assume( insn_valid_history );
+
+		// ensure that insn is stable while processing over multiple cycles:
+		if ( $past( insn_valid && !rvfi_valid ) ) begin
+			assume( insn_valid          );
+			assume( insn == $past(insn) );
+			end
 	end
 `endif
 

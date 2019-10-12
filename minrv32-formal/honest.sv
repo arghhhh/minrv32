@@ -26,8 +26,8 @@ module testbench (
 	`RVFI_WIRES
 
 	minrv32 #(
-		.COMPRESSED_ISA(1),
-		.BARREL_SHIFTER(1)
+//		.COMPRESSED_ISA(1),
+//		.BARREL_SHIFTER(1)
 	) uut (
 		.clk            (clk           ),
 		.resetn         (resetn        ),

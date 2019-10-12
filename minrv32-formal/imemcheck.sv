@@ -39,9 +39,9 @@ module testbench (
 	end
 
 	minrv32 #(
-		.REGS_INIT_ZERO(1),
-		.COMPRESSED_ISA(1),
-		.BARREL_SHIFTER(1)
+//		.REGS_INIT_ZERO(1),
+//		.COMPRESSED_ISA(1),
+//		.BARREL_SHIFTER(1)
 	) uut (
 		.clk            (clk           ),
 		.resetn         (resetn        ),

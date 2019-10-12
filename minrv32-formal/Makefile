@@ -3,8 +3,13 @@
 MINRV_SRCS:= ../minrv32.v
 
 
+# insn runs all the individual instruction checks in the checks directory
+# consistency runs the non-insn checks in the checks directory
 
-all: complete cover honest imemcheck dmemcheck insn consistency
+all: complete cover insn consistency report
+
+# these are to do with memory...
+# honest imemcheck dmemcheck 
 
 
 clean:
@@ -18,7 +23,7 @@ checks: checks/makefile $(MINRV_SRCS)
 	make -C checks -j$(nproc)
 .PHONY: checks
 
-insn: $(MINRV_SRCS)
+insn: $(MINRV_SRCS) checks
 	make -C checks -j$(nproc) insn
 
 consistency: $(MINRV_SRCS)
@@ -51,3 +56,6 @@ dmemcheck/status: $(MINRV_SRCS)
 	sby -f dmemcheck.sby
 .PHONY: dmemcheck
 
+report:
+	find . -name PASS | wc
+	@find . -name FAIL
