@@ -136,13 +136,19 @@ wire        insn_valid;
 		insn_valid_history <= { insn_valid_history, insn_valid };
 		assume( insn_valid_history );
 
+	end
+`endif
+
+// PICORV32_FAIRNESS is not defined for reg check - and this is needed for that....
+	always @(posedge clock) begin
 		// ensure that insn is stable while processing over multiple cycles:
 		if ( $past( insn_valid && !rvfi_valid ) ) begin
 			assume( insn_valid          );
 			assume( insn == $past(insn) );
 			end
 	end
-`endif
+
+
 
 `ifdef PICORV32_CSR_RESTRICT
 	always @* begin
