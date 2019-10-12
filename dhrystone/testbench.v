@@ -24,6 +24,8 @@ module testbench;
 	wire [31:0] insn_addr;
 	wire [31:0] insn;
 
+	reg insn_valid = 0;
+
 	minrv32 #(
 //		.BARREL_SHIFTER(1),
 //		.ENABLE_FAST_MUL(1),
@@ -48,6 +50,7 @@ module testbench;
 		, .insn_addr   ( insn_addr )
 
 		, .insn( insn )
+		, .insn_valid( insn_valid )
 
 	);
 
@@ -68,6 +71,8 @@ module testbench;
 	assign insn[15: 8] = memory[insn_addr + 1] ;
 	assign insn[23:16] = memory[insn_addr + 2] ;
 	assign insn[31:24] = memory[insn_addr + 3] ;
+
+	always @(posedge clk ) insn_valid = 1;// $random;
 
 	always @(posedge clk) begin
 		if (mem_wstrb != 0 ) begin

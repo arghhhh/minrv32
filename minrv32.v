@@ -247,7 +247,7 @@ end
 // Add trace using the RVFI interface
 // dump out the first few instructions in using cache and not, and compare...
 
-// `define USECACHE
+`define USECACHE
 `ifdef USECACHE
 
 
@@ -267,7 +267,7 @@ wire [31:0] rs_rdata;
 
 assign cache_clear_next = insn_complete;
 
-reg  cache_clear;
+// reg  cache_clear;
 wire rs_ready = 1;  // a register read can always take place ... for now
 
 reg        cache_rs1_valid;
@@ -282,7 +282,7 @@ always @(*) begin
 	cache_rs2_next = cache_rs2;
 	rs_addr  = 0;
 
-	if ( cache_clear ) begin
+	if ( cache_clear_next ) begin
 		cache_rs1_valid_next = 0;
 		cache_rs2_valid_next = 0;
 		cache_rs1_next = 0;
@@ -307,14 +307,14 @@ assign rs2_rdata = cache_rs2;
 always @(posedge clk  )
 if ( !resetn ) begin
 	cache_rs1_valid <= 0;
-	cache_rs1_valid <= 0;
-	cache_clear     <= 1;
+	cache_rs2_valid <= 0;
+//	cache_clear     <= 1;
 	cache_rs1       <= 0;
 	cache_rs2       <= 0;
 end else begin
 	cache_rs1_valid <= cache_rs1_valid_next;
 	cache_rs2_valid <= cache_rs2_valid_next;
-	cache_clear <= cache_clear_next;
+//	cache_clear <= cache_clear_next;
 	cache_rs1 <= cache_rs1_next;
 	cache_rs2 <= cache_rs2_next;
 end
@@ -355,7 +355,7 @@ minrv32_combinatorial minrv32_combinatorial (
 	, .pc_next_valid   ( pc_next_valid  )
 	, .insn_addr       ( insn_addr      )
 	, .insn            ( insn           )
-	, .insn_valid      ( insn_valid     )
+	, .insn_valid      ( insn_valid && resetn    )
 	, .insn_complete   ( insn_complete  )
 	, .rs1_addr        ( rs1_addr       )
 	, .rs2_addr        ( rs2_addr       )
@@ -905,6 +905,9 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 					endcase
 					end
 			end
+		end
+		if ( trap ) begin
+			pc_next = pc; // this will lock up the simulation, but prevents it doing stuff it shouldn't
 		end
 	end
 

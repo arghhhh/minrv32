@@ -140,10 +140,10 @@ end
 localparam PROGADDR_RESET = 'h10000;
 localparam STACKADDR      = 'h10000;
 
-wire insn_complete;
+// wire insn_complete;
 
 reg [31:0] pc;
-wire [31:0] pc_next;
+// wire [31:0] pc_next;
 
 
 /*
@@ -163,7 +163,7 @@ wire  [31:0] rs2_rdata        ;
 
 initial pc = PROGADDR_RESET;
 always @(posedge clk) begin
-	pc <= reset ? PROGADDR_RESET : ( insn_complete ? pc_next : pc ) ;
+	pc <= reset ? PROGADDR_RESET : ( expect_insn_complete ? expect_pc_next : pc ) ;
 end
 
 integer i;
@@ -229,9 +229,9 @@ minrv32_combinatorial minrv32_combinatorial (
 	, .mem_wstrb       ( expect_mem_wstrb      )
 	, .mem_rmask       ( expect_mem_rmask      )
 	, .mem_rdata       (   rvfi_mem_rdata      )  // not shadowing memory - so take trust RVFI
-	, .csr_time        ( expect_csr_time       )  //
-	, .csr_cycle       ( expect_csr_cycle      )  //
-	, .csr_instret     ( expect_csr_instret    )  //
+	, .csr_time        (        csr_time       )  //
+	, .csr_cycle       (        csr_cycle      )  //
+	, .csr_instret     (        csr_instret    )  //
 
 
 // not sure that this is necessary.....
@@ -283,8 +283,8 @@ reg  [5*8-1:0] mnemonic = "???";
 //	assign rvfi_order = csr_instret;
 
 	reg insn_decode_valid;
-	reg gen_trap;
-	assign trap = !insn_decode_valid || gen_trap;
+	//reg gen_trap;
+//	assign trap = !insn_decode_valid || gen_trap;
 
 	wire [31:0] insn = rvfi_insn;
 
@@ -303,6 +303,7 @@ reg  [5*8-1:0] mnemonic = "???";
 // will decode the instruction into expected_rvfi_* fields
 // which will then be asserted against the supplied rvfi_* fields
 
+/*
 	reg            expected_rvfi_valid          ;
 	reg     [63:0] expected_rvfi_order          ;
 	reg     [31:0] expected_rvfi_insn           ;
@@ -325,7 +326,7 @@ reg  [5*8-1:0] mnemonic = "???";
 	reg     [ 3:0] expected_rvfi_mem_wmask      ;
 	reg     [31:0] expected_rvfi_mem_rdata      ;
 	reg     [31:0] expected_rvfi_mem_wdata      ;
-
+*/
 
 
 	reg is_alu_immediate;
@@ -677,87 +678,91 @@ wire mismatch = 0;
             $fdisplay( fd, "reset" );
         end else begin
             if (rvfi_valid /* && insn_decode_valid */ ) begin
+				if ( insn_decode_valid ) begin 
 
-                if ( mismatch ) begin
-                    $fdisplay( fd );
-                end
+	                if ( mismatch ) begin
+	                    $fdisplay( fd );
+	                end
 
-                $fwrite( fd, "%08x ", rvfi_pc_rdata );
-                $fwrite( fd, "%08x ", rvfi_insn );
-                $fwrite( fd, "%s ", mnemonic );
-
-
-				if ( expect_rd_addr_valid ) begin
-                	$fwrite( fd, "%s <= " , register_names[ expect_rd_addr*3*8  +: 3*8 ] );
-					$fwrite( fd, "%x ", expect_rd_wdata );
-                end else begin
-					$fwrite( fd, "     " );
-				end
-				
-				if ( expect_rs1_addr_valid ) begin
-					$fwrite( fd, "%s " , register_names[ expect_rs1_addr*3*8 +: 3*8 ] );
-					if ( expect_rs1_addr != 0 ) $fwrite( fd, "(%x) ", shadow_rs1_rdata );
-				end else begin
-					$fwrite( fd, "     " );
-				end
-
-				if ( expect_rs2_addr_valid ) begin
-					$fwrite( fd, "%s " , register_names[ expect_rs2_addr*3*8 +: 3*8 ] );
-					if ( expect_rs2_addr != 0 )$fwrite( fd, "(%x) ", shadow_rs2_rdata );
-				end else begin
-					$fwrite( fd, "     " );
-				end
-
-				if ( has_immediate ) $fwrite( fd, "%x ", immediate );
-
-				if ( is_store ) $fwrite( fd, "write mem[%x] = %x ", rvfi_mem_addr, rvfi_mem_wdata );
-				if ( is_load  ) $fwrite( fd, "read  mem[%x] = %x ", rvfi_mem_addr, rvfi_mem_rdata );
+	                $fwrite( fd, "%08x ", rvfi_pc_rdata );
+	                $fwrite( fd, "%08x ", rvfi_insn );
+	                $fwrite( fd, "%s ", mnemonic );
 
 
+					if ( expect_rd_addr_valid ) begin
+	                	$fwrite( fd, "%s <= " , register_names[ expect_rd_addr*3*8  +: 3*8 ] );
+						$fwrite( fd, "%x ", expect_rd_wdata );
+	                end else begin
+						$fwrite( fd, "     " );
+					end
 
-				$fdisplay( fd );
-				// compare points:
-				$fdisplay( fd, "pc_next:  %x : %x", rvfi_pc_wdata, expect_pc_next );
-				if ( expect_rd_request ) begin
-                	$fdisplay( fd, "rd_addr: %x : %x" , rvfi_rd_addr, expect_rd_addr );
-					$fdisplay( fd, "rd_data: %x : %x" , rvfi_rd_wdata, expect_rd_wdata );
-				end
-				if ( expect_rs1_request ) begin
-                	$fdisplay( fd, "rs1_addr: %x : %x" , rvfi_rs1_addr, expect_rs1_addr );
-					$fdisplay( fd, "rs1_data: %x : %x" , rvfi_rs1_rdata, shadow_rs1_rdata );
-				end
-				if ( expect_rs2_request ) begin
-                	$fdisplay( fd, "rs2_addr: %x : %x" , rvfi_rs2_addr, expect_rs2_addr );
-					$fdisplay( fd, "rs2_data: %x : %x" , rvfi_rs2_rdata, shadow_rs2_rdata );
-				end
-				if ( is_store || is_load ) begin
-					// can compare addresses
-					// but cannot compare data because that is not being shadowed
-					$fdisplay( fd, "mem_addr: %x : %x" , rvfi_mem_addr, expect_mem_addr );
-				end
+					if ( expect_rs1_addr_valid ) begin
+						$fwrite( fd, "%s " , register_names[ expect_rs1_addr*3*8 +: 3*8 ] );
+						if ( expect_rs1_addr != 0 ) $fwrite( fd, "(%x) ", shadow_rs1_rdata );
+					end else begin
+						$fwrite( fd, "     " );
+					end
+
+					if ( expect_rs2_addr_valid ) begin
+						$fwrite( fd, "%s " , register_names[ expect_rs2_addr*3*8 +: 3*8 ] );
+						if ( expect_rs2_addr != 0 )$fwrite( fd, "(%x) ", shadow_rs2_rdata );
+					end else begin
+						$fwrite( fd, "     " );
+					end
+
+					if ( has_immediate ) $fwrite( fd, "%x ", immediate );
+
+					if ( is_store ) $fwrite( fd, "write mem[%x] = %x ", rvfi_mem_addr, rvfi_mem_wdata );
+					if ( is_load  ) $fwrite( fd, "read  mem[%x] = %x ", rvfi_mem_addr, rvfi_mem_rdata );
 
 
 
+					$fdisplay( fd );
+					// compare points:
+					$fdisplay( fd, "pc_next:  %x : %x", rvfi_pc_wdata, expect_pc_next );
+					if ( expect_rd_request ) begin
+	                	$fdisplay( fd, "rd_addr: %x : %x" , rvfi_rd_addr, expect_rd_addr );
+						$fdisplay( fd, "rd_data: %x : %x" , rvfi_rd_wdata, expect_rd_wdata );
+					end
+					if ( expect_rs1_request ) begin
+	                	$fdisplay( fd, "rs1_addr: %x : %x" , rvfi_rs1_addr, expect_rs1_addr );
+						$fdisplay( fd, "rs1_data: %x : %x" , rvfi_rs1_rdata, shadow_rs1_rdata );
+					end
+					if ( expect_rs2_request ) begin
+	                	$fdisplay( fd, "rs2_addr: %x : %x" , rvfi_rs2_addr, expect_rs2_addr );
+						$fdisplay( fd, "rs2_data: %x : %x" , rvfi_rs2_rdata, shadow_rs2_rdata );
+					end
+					if ( is_store || is_load ) begin
+						// can compare addresses
+						// but cannot compare data because that is not being shadowed
+						$fdisplay( fd, "mem_addr: %x : %x" , rvfi_mem_addr, expect_mem_addr );
+					end
 
-                if ( mismatch ) begin
-                    $fwrite( fd, "%08x ", rvfi_pc_rdata );
-                    $fwrite( fd, "%08x ", rvfi_insn );
-                    $fwrite( fd, "%s ", mnemonic );
-                    $fwrite( fd, "%s " , register_names[ expect_rd_addr*3*8 +: 3*8 ] );
-                    $fwrite( fd, "%s " , register_names[ expect_rs1_addr*3*8 +: 3*8 ] );
-                    $fwrite( fd, "%s " , register_names[ expect_rs2_addr*3*8 +: 3*8 ] );
-
-                    $fdisplay( fd );
-                end
 
 
-         //       $write( "%s", rs1_str );
-         //       $write( "%s", rs2_str );
-       //         $write( "%s", immediate_str );
-            end else begin
-                $fwrite( fd, "illegal instruction" );
-            end
-            $fdisplay( fd );
+
+	                if ( mismatch ) begin
+	                    $fwrite( fd, "%08x ", rvfi_pc_rdata );
+	                    $fwrite( fd, "%08x ", rvfi_insn );
+	                    $fwrite( fd, "%s ", mnemonic );
+	                    $fwrite( fd, "%s " , register_names[ expect_rd_addr*3*8 +: 3*8 ] );
+	                    $fwrite( fd, "%s " , register_names[ expect_rs1_addr*3*8 +: 3*8 ] );
+	                    $fwrite( fd, "%s " , register_names[ expect_rs2_addr*3*8 +: 3*8 ] );
+
+	                    $fdisplay( fd );
+	                end
+
+
+	         //       $write( "%s", rs1_str );
+	         //       $write( "%s", rs2_str );
+	       //         $write( "%s", immediate_str );
+
+            	end else begin
+                	$fwrite( fd, "illegal instruction" );
+            	end
+
+            	$fdisplay( fd );
+			end
         end
     end
 
