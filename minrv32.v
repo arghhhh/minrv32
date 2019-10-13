@@ -287,7 +287,9 @@ always @(*) begin
 		cache_rs2_valid_next = 0;
 		cache_rs1_next = 0;
 		cache_rs2_next = 0;
-	end else begin
+	end 
+	//else
+	 begin
 		if ( rs1_addr_valid && !cache_rs1_valid ) begin
 			rs_addr = rs1_addr;
 			cache_rs1_next = rs_rdata;
