@@ -28,7 +28,8 @@ blackbox = False
 
 cfgname = "checks"
 basedir = "%s/../../riscv-formal" % os.getcwd()
-corename = "minrv32"   #os.getcwd().split("/")[-1]
+coredir = "%s"  % os.getcwd()
+corename = "minrv32" # os.getcwd().split("/")[-1]
 solver = "boolector"
 dumpsmt2 = False
 sbycmd = "sby -f"
@@ -114,6 +115,7 @@ def print_hfmt(f, text, **kwargs):
 
 hargs = dict()
 hargs["basedir"] = basedir
+hargs["coredir"] = coredir
 hargs["core"] = corename
 hargs["nret"] = nret
 hargs["xlen"] = xlen
