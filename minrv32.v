@@ -383,8 +383,17 @@ assign rs1_state_readyIn[0] = rs1_addr_valid && arb_readyOut[0];
 assign arb_readyIn[1]       = rs2_addr_valid && rs2_state_readyOut[0];
 assign rs2_state_readyIn[0] = rs2_addr_valid && arb_readyOut[1];
 
-assign rs1_state_readyIn[1] = arb_readyOut[0];  // combinatorial memory read
-assign rs2_state_readyIn[1] = arb_readyOut[1];  // combinatorial memory read
+//assign rs1_state_readyIn[1] = arb_readyOut[0];  // combinatorial memory read
+//assign rs2_state_readyIn[1] = arb_readyOut[1];  // combinatorial memory read
+
+localparam mem_delay = 3;
+
+pipeline #( .Nbits(2), .Nstages(mem_delay) ) reg_responses_pipeline ( 
+	  .in( arb_readyOut) 
+	, .out( { rs2_state_readyIn[1], rs1_state_readyIn[1] } )
+	, .clk(clk) 
+	);
+
 
 assign rs1_state_readyIn[2] = insn_complete;
 assign rs2_state_readyIn[2] = insn_complete;
@@ -402,7 +411,9 @@ one_hot_mux #( .Ninputs(2), .Nbits(5) ) mux_rs_addr (
 );
 
 wire [31:0] rs_data;
-assign rs_data = registers[ rs_addr ];
+wire [31:0] rs_data1 = registers[ rs_addr ];
+
+pipeline #( .Nbits(32), .Nstages(mem_delay) ) registers_pipeline( .in( rs_data1) , .out( rs_data ), .clk(clk) );
 
 wire rs1_reg_en = rs1_state_readyIn && rs1_state_readyOut;
 wire rs2_reg_en = rs2_state_readyIn && rs2_state_readyOut;

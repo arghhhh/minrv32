@@ -116,3 +116,23 @@ always @(posedge clk) begin
 end
 
 endmodule
+
+
+module pipeline #( parameter Nbits = 1, parameter Nstages = 1 ) (
+      input [ Nbits-1:0] in
+    , output [ Nbits-1:0 ] out
+    , input clk
+);
+
+wire [ Nbits-1:0 ] reg_outs [ Nstages-1:0 ];
+
+genvar i;
+// generate
+for ( i=0; i< Nstages ; i=i+1 ) begin
+    register #(Nbits) r( .in( i==0 ? in : reg_outs[i-1] ), .out( reg_outs[i] ), .enable(1'b1), .clk(clk) );
+end
+// endgenerate
+
+    assign out = (Nstages ==0) ? in : reg_outs[ Nstages-1 ];
+
+endmodule
