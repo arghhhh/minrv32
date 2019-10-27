@@ -3,6 +3,8 @@ OBJS = dhry_1.o dhry_2.o stdlib.o
 CFLAGS = -MD -O3 -march=rv32i -DTIME -DRISCV
 TOOLCHAIN_PREFIX = /opt/riscv32i/bin/riscv32-unknown-elf-
 
+VERILOG_SRCS = ../minlib.v ../minrv32.v ../rvfi_monitor.v
+
 ifeq ($(USE_MYSTDLIB),1)
 CFLAGS += -DUSE_MYSTDLIB -ffreestanding -nostdlib
 OBJS += start.o
@@ -23,8 +25,8 @@ timing: timing.txt
 timing.txt: timing.vvp dhry.hex
 	vvp -N timing.vvp > timing.txt
 
-testbench.vvp: testbench.v ../minrv32.v ../rvfi_monitor.v
-	iverilog -DRVFI_MONITOR -o testbench.vvp testbench.v ../minrv32.v ../rvfi_monitor.v
+testbench.vvp: testbench.v $(VERILOG_SRCS)
+	iverilog -DRVFI_MONITOR -o testbench.vvp testbench.v $(VERILOG_SRCS)
 	chmod -x testbench.vvp
 
 testbench_nola.vvp: testbench_nola.v ../minrv32.v

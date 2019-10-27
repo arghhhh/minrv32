@@ -247,8 +247,20 @@ end
 // Add trace using the RVFI interface
 // dump out the first few instructions in using cache and not, and compare...
 
-`define USECACHE
-`ifdef USECACHE
+`define USECACHE2
+
+
+`ifdef USECACHE0
+// combinatorial version:
+
+assign rs1_rdata = registers[ rs1_addr ];
+assign rs2_rdata = registers[ rs2_addr ];
+assign rs1_ready = 1;
+assign rs2_ready = 1;
+`endif
+
+
+`ifdef USECACHE1
 
 
 // very simple cache to begin with
@@ -330,21 +342,85 @@ assign cache_clear_next = insn_complete;
 assign rs1_ready = cache_rs1_valid;
 assign rs2_ready = cache_rs2_valid;
 
+`endif
+
+`ifdef USECACHE2
 
 
 
 
+wire [2:0] rs1_state_readyIn;
+wire [2:0] rs2_state_readyIn;
+wire [2:0] rs1_state_readyOut;
+wire [2:0] rs2_state_readyOut;
 
-`else
+wire [1:0] arb_readyIn;
+wire [1:0] arb_readyOut;
 
-// combinatorial version:
+sequencer #( .N(3), .sticky( 3'b110 ) ) rs1_state( 
+      .readyIn( rs1_state_readyIn )
+    , .readyOut( rs1_state_readyOut )
 
-assign rs1_rdata = registers[ rs1_addr ];
-assign rs2_rdata = registers[ rs2_addr ];
-assign rs1_ready = 1;
-assign rs2_ready = 1;
+	, .clk( clk )
+	, .resetn( resetn )
+);
+
+sequencer #( .N(3), .sticky( 3'b110 ) ) rs2_state( 
+      .readyIn( rs2_state_readyIn )
+    , .readyOut( rs2_state_readyOut )
+	, .clk( clk )
+	, .resetn( resetn )
+);
+
+priority_arb #(2) arb(
+      .readyIn ( arb_readyIn )
+    , .readyOut( arb_readyOut )
+);
+
+assign arb_readyIn[0]       = rs1_addr_valid && rs1_state_readyOut[0];
+assign rs1_state_readyIn[0] = rs1_addr_valid && arb_readyOut[0];
+
+assign arb_readyIn[1]       = rs2_addr_valid && rs2_state_readyOut[0];
+assign rs2_state_readyIn[0] = rs2_addr_valid && arb_readyOut[1];
+
+assign rs1_state_readyIn[1] = arb_readyOut[0];  // combinatorial memory read
+assign rs2_state_readyIn[1] = arb_readyOut[1];  // combinatorial memory read
+
+assign rs1_state_readyIn[2] = insn_complete;
+assign rs2_state_readyIn[2] = insn_complete;
+
+assign rs1_ready = rs1_state_readyOut[2];
+assign rs2_ready = rs2_state_readyOut[2];
+
+
+wire [4:0] rs_addr;
+
+one_hot_mux #( .Ninputs(2), .Nbits(5) ) mux_rs_addr (
+      .ins ( { rs2_addr, rs1_addr } )
+    , .select( arb_readyOut )
+    , .out( rs_addr )
+);
+
+wire [31:0] rs_data;
+assign rs_data = registers[ rs_addr ];
+
+wire rs1_reg_en = rs1_state_readyIn && rs1_state_readyOut;
+wire rs2_reg_en = rs2_state_readyIn && rs2_state_readyOut;
+
+register #(32) rs1( .in( rs_data ), .out( rs1_rdata ), .enable( rs1_reg_en ), .clk( clk) );
+register #(32) rs2( .in( rs_data ), .out( rs2_rdata ), .enable( rs2_reg_en ), .clk( clk) );
+
 
 `endif
+
+
+
+
+
+
+
+
+
 
 wire [3:0] mem_wstrb1;
 assign mem_wstrb = insn_complete ? mem_wstrb1 : 0;
