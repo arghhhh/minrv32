@@ -388,10 +388,11 @@ assign rs2_state_readyIn[0] = rs2_addr_valid && arb_readyOut[1];
 
 localparam mem_delay = 3;
 
-pipeline #( .Nbits(2), .Nstages(mem_delay) ) reg_responses_pipeline ( 
+pipeline_resetable #( .Nbits(2), .Nstages(mem_delay) ) reg_responses_pipeline ( 
 	  .in( arb_readyOut) 
 	, .out( { rs2_state_readyIn[1], rs1_state_readyIn[1] } )
-	, .clk(clk) 
+	, .clk(clk)
+	, .resetn( resetn ) 
 	);
 
 

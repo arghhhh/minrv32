@@ -70,7 +70,7 @@ always @(*) begin
     state_next = state1;
 end
 
-always @(posedge clk or negedge resetn ) begin
+always @(posedge clk  ) begin
     if ( !resetn ) state <= 0;
     else           state <= state_next;
 end
@@ -117,6 +117,22 @@ end
 
 endmodule
 
+module register_resetable #( parameter Nbits = 1 ) (
+      input  [ Nbits-1:0 ] in
+    , input                enable
+    , output reg [ Nbits-1:0 ] out
+
+    , input                clk
+    , input                 resetn
+);
+
+always @(posedge clk ) begin
+    if (!resetn) out <= 0;  // TODO parameterize this
+    else if ( enable ) out <= in;
+end
+
+endmodule
+
 
 module pipeline #( parameter Nbits = 1, parameter Nstages = 1 ) (
       input [ Nbits-1:0] in
@@ -129,10 +145,36 @@ wire [ Nbits-1:0 ] reg_outs [ Nstages-1:0 ];
 genvar i;
 // generate
 for ( i=0; i< Nstages ; i=i+1 ) begin
-    register #(Nbits) r( .in( i==0 ? in : reg_outs[i-1] ), .out( reg_outs[i] ), .enable(1'b1), .clk(clk) );
+    register #(Nbits) r( .in( i==0 ? in : reg_outs[ (i==0) ? 0 : (i-1) ] ), .out( reg_outs[i] ), .enable(1'b1), .clk(clk) );
 end
 // endgenerate
 
-    assign out = (Nstages ==0) ? in : reg_outs[ Nstages-1 ];
+    assign out = (Nstages ==0) ? in : reg_outs[ Nstages==0 ? 0 : ( Nstages-1 ) ];
+
+endmodule
+
+module pipeline_resetable #( parameter Nbits = 1, parameter Nstages = 1 ) (
+      input [ Nbits-1:0] in
+    , output [ Nbits-1:0 ] out
+    , input clk
+    , input resetn
+);
+
+wire [ Nbits-1:0 ] reg_outs [ Nstages-1:0 ];
+
+genvar i;
+// generate
+for ( i=0; i< Nstages ; i=i+1 ) begin
+    register_resetable #(Nbits) r( 
+          .in( i==0 ? in : reg_outs[ (i==0) ? 0 : (i-1) ] )
+        , .out( reg_outs[i] )
+        , .enable(1'b1)
+        , .clk(clk) 
+        , .resetn( resetn )
+        );
+end
+// endgenerate
+
+    assign out = (Nstages ==0) ? in : reg_outs[ Nstages==0 ? 0 : ( Nstages-1 ) ];
 
 endmodule

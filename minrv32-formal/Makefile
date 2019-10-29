@@ -1,6 +1,6 @@
 
 
-MINRV_SRCS:= ../minrv32.v
+MINRV_SRCS:= ../minlib.v ../minrv32.v
 
 
 # insn runs all the individual instruction checks in the checks directory
