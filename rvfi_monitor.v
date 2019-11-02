@@ -49,6 +49,8 @@ module rvfi_monitor (
 
 
 
+// should measure cycle count per instruction
+
 
 wire             expect_rvfi_valid        ;
 wire      [63:0] expect_rvfi_order        ;

@@ -426,8 +426,13 @@ register #(32) rs2( .in( rs_data ), .out( rs2_rdata ), .enable( rs2_reg_en ), .c
 `endif
 
 
+`define DEBUG_VALID
 
-
+`ifdef DEBUG_VALID
+`define valid_data_or_x( valid, data ) ( (valid)?(data) : 'z )
+`else
+`define valid_data_or_x( valid, data ) ( data )
+`endif
 
 
 
@@ -705,29 +710,29 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 
 
 	assign rvfi_insn = insn;
-	assign rvfi_pc_rdata = insn_addr;
-	assign rvfi_pc_wdata = pc_next;
+	assign rvfi_pc_rdata   = insn_addr;
+	assign rvfi_pc_wdata   = `valid_data_or_x( rvfi_valid, rvfi_valid );
 
-	assign rvfi_rs1_addr   = rs1_addr  ;
-	assign rvfi_rs2_addr   = rs2_addr  ;
-	assign rvfi_rd_addr    = rd_addr   ;
+	assign rvfi_rs1_addr   = `valid_data_or_x( rvfi_valid, rs1_addr  );
+	assign rvfi_rs2_addr   = `valid_data_or_x( rvfi_valid, rs2_addr  );
+	assign rvfi_rd_addr    = `valid_data_or_x( rvfi_valid, rd_addr   );
 
-	assign rvfi_rs1_rdata  = ( rs1_addr_valid ) ? rs1_value : 32'b0 ;
-	assign rvfi_rs2_rdata  = ( rs2_addr_valid ) ? rs2_value : 32'b0 ;
-	assign rvfi_rd_wdata   = ( rd_addr_valid && ( insn_field_rd != 0 ) ) ? rd_wdata  : 32'b0 ;
+	assign rvfi_rs1_rdata  = `valid_data_or_x( rvfi_valid, ( rs1_addr_valid )                          ? rs1_value : 32'b0 );
+	assign rvfi_rs2_rdata  = `valid_data_or_x( rvfi_valid, ( rs2_addr_valid )                          ? rs2_value : 32'b0 );
+	assign rvfi_rd_wdata   = `valid_data_or_x( rvfi_valid, ( rd_addr_valid && ( insn_field_rd != 0 ) ) ? rd_wdata  : 32'b0 );
 
 	// even the combo version might not complete in one cycle if mem_ready is held low...
 	assign rvfi_valid      = insn_complete        ;
-	assign rvfi_trap       = trap     ;
-	assign rvfi_halt       = trap      ; // for the liveness check.. maybe revisit if trap handling is added
+	assign rvfi_trap       = `valid_data_or_x( rvfi_valid, trap      );
+	assign rvfi_halt       = `valid_data_or_x( rvfi_valid, trap      ); // for the liveness check.. maybe revisit if trap handling is added
 
-	assign rvfi_mem_addr   = mem_addr  ;
-	assign rvfi_mem_rmask  = mem_rmask ;
-	assign rvfi_mem_wmask  = mem_wstrb ;
-	assign rvfi_mem_rdata  = mem_rdata ;
-	assign rvfi_mem_wdata  = mem_wdata ;
+	assign rvfi_mem_addr   = `valid_data_or_x( rvfi_valid, mem_addr  );
+	assign rvfi_mem_rmask  = `valid_data_or_x( rvfi_valid, mem_rmask );
+	assign rvfi_mem_wmask  = `valid_data_or_x( rvfi_valid, mem_wstrb );
+	assign rvfi_mem_rdata  = `valid_data_or_x( rvfi_valid, mem_rdata );
+	assign rvfi_mem_wdata  = `valid_data_or_x( rvfi_valid, mem_wdata );
 
-	assign rvfi_intr = 0;
+	assign rvfi_intr       = `valid_data_or_x( rvfi_valid,  0        );
 
 	assign rvfi_csr_mcycle_rmask   = 0 ;
 	assign rvfi_csr_mcycle_wmask   = 0 ;
