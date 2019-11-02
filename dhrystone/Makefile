@@ -12,7 +12,7 @@ else
 OBJS += syscalls.o
 endif
 
-test: testbench.vvp dhry.hex
+test: testbench.vvp dhry.hex dhry.elf.S
 	vvp -N testbench.vvp
 
 test_nola: testbench_nola.vvp dhry.hex
@@ -49,6 +49,9 @@ dhry.elf: $(OBJS)
 	$(TOOLCHAIN_PREFIX)gcc $(CFLAGS) -Wl,-Bstatic,-T,../firmware/riscv.ld,-Map,dhry.map,--strip-debug -o $@ $(OBJS) -lgcc -lc
 	chmod -x $@
 endif
+
+dhry.elf.S: dhry.elf
+	$(TOOLCHAIN_PREFIX)objdump --disassemble dhry.elf > dhry.elf.S
 
 %.o: %.c
 	$(TOOLCHAIN_PREFIX)gcc -c $(CFLAGS) $<

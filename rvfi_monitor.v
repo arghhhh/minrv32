@@ -139,6 +139,15 @@ always @(posedge clk) begin
 	end
 end
 
+integer instruction_cycles;
+integer instruction_cycles_next;
+always @(*) begin
+	instruction_cycles_next = reset ? 0 : rvfi_valid ? 1 : (instruction_cycles+1) ; 
+end
+always @(posedge clk) begin
+	instruction_cycles <= instruction_cycles_next;
+end
+
 localparam PROGADDR_RESET = 'h10000;
 localparam STACKADDR      = 'h10000;
 

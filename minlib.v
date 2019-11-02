@@ -90,7 +90,7 @@ integer i;
 
 always @(*) begin
 
-
+/*
     out1 = {Nbits{1'b1}};
     for( i =0; i< Ninputs; i=i+1 ) begin
         tmp = ins >> ( Nbits * i );
@@ -98,6 +98,16 @@ always @(*) begin
             out1 = out1 & tmp;
         end
     end
+*/
+    out1 = 0;
+    for( i =0; i< Ninputs; i=i+1 ) begin
+        tmp = ins >> ( Nbits * i );
+        out1 = out1 | ( select[i] ? tmp : 0 );
+    end
+
+
+
+
     out = out1;
 end
 

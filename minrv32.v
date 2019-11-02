@@ -426,7 +426,7 @@ register #(32) rs2( .in( rs_data ), .out( rs2_rdata ), .enable( rs2_reg_en ), .c
 `endif
 
 
-`define DEBUG_VALID
+//`define DEBUG_VALID
 
 `ifdef DEBUG_VALID
 `define valid_data_or_x( valid, data ) ( (valid)?(data) : 'z )
@@ -711,14 +711,14 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 
 	assign rvfi_insn = insn;
 	assign rvfi_pc_rdata   = insn_addr;
-	assign rvfi_pc_wdata   = `valid_data_or_x( rvfi_valid, rvfi_valid );
+	assign rvfi_pc_wdata   = `valid_data_or_x( rvfi_valid, pc_next );
 
-	assign rvfi_rs1_addr   = `valid_data_or_x( rvfi_valid, rs1_addr  );
-	assign rvfi_rs2_addr   = `valid_data_or_x( rvfi_valid, rs2_addr  );
+	assign rvfi_rs1_addr   = `valid_data_or_x( rvfi_valid && rs1_addr != 0, rs1_addr  );
+	assign rvfi_rs2_addr   = `valid_data_or_x( rvfi_valid && rs2_addr != 0, rs2_addr  );
 	assign rvfi_rd_addr    = `valid_data_or_x( rvfi_valid, rd_addr   );
 
-	assign rvfi_rs1_rdata  = `valid_data_or_x( rvfi_valid, ( rs1_addr_valid )                          ? rs1_value : 32'b0 );
-	assign rvfi_rs2_rdata  = `valid_data_or_x( rvfi_valid, ( rs2_addr_valid )                          ? rs2_value : 32'b0 );
+	assign rvfi_rs1_rdata  = `valid_data_or_x( rvfi_valid && rs1_addr != 0, ( rs1_addr_valid )                          ? rs1_value : 32'b0 );
+	assign rvfi_rs2_rdata  = `valid_data_or_x( rvfi_valid && rs2_addr != 0, ( rs2_addr_valid )                          ? rs2_value : 32'b0 );
 	assign rvfi_rd_wdata   = `valid_data_or_x( rvfi_valid, ( rd_addr_valid && ( insn_field_rd != 0 ) ) ? rd_wdata  : 32'b0 );
 
 	// even the combo version might not complete in one cycle if mem_ready is held low...
