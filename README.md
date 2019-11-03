@@ -53,6 +53,7 @@ I expect that I will modify this slightly to set the stack pointer in the startu
 
 This is pretty much a direct clone of https://github.com/cliffordwolf/picorv32/tree/master/dhrystone.
 For the current "combinatorial" RISC-V implementation, the benchmark returns a 0.999 (i.e. 1) instructions per cycle - as expected.
+Set USE_MYSTDLIB = 1 in Makefile to the startup code in start.S that sets the stack pointer.
 
 
 
