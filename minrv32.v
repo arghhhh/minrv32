@@ -235,12 +235,51 @@ reg [31:0] registers [ 0:31 ];
 always @(posedge clk) begin
 	if ( !resetn ) begin
 		registers[ 0] <= 0;
-		registers[ 2] <= STACKADDR;
+
+// use USE_MYSTDLIB in Makefile to avoid needing the stack pointer to be set in hardware
+// I think the bootloader would deal with setting the stack pointer otherwise...
+// .. but there is no bootloader.
+//		registers[ 2] <= STACKADDR;
 	end
 	if ( rd_request && insn_complete ) begin
 		registers[ rd_addr ] <= rd_wdata;
 	end
 end
+
+wire [31:0] reg_x0  = registers[ 0];
+wire [31:0] reg_x1  = registers[ 1];
+wire [31:0] reg_x2  = registers[ 2];
+wire [31:0] reg_x3  = registers[ 3];
+wire [31:0] reg_x4  = registers[ 4];
+wire [31:0] reg_x5  = registers[ 5];
+wire [31:0] reg_x6  = registers[ 6];
+wire [31:0] reg_x7  = registers[ 7];
+wire [31:0] reg_x8  = registers[ 8];
+wire [31:0] reg_x9  = registers[ 9];
+wire [31:0] reg_x10 = registers[10];
+wire [31:0] reg_x11 = registers[11];
+wire [31:0] reg_x12 = registers[12];
+wire [31:0] reg_x13 = registers[13];
+wire [31:0] reg_x14 = registers[14];
+wire [31:0] reg_x15 = registers[15];
+wire [31:0] reg_x16 = registers[16];
+wire [31:0] reg_x17 = registers[17];
+wire [31:0] reg_x18 = registers[18];
+wire [31:0] reg_x19 = registers[19];
+wire [31:0] reg_x20 = registers[20];
+wire [31:0] reg_x21 = registers[21];
+wire [31:0] reg_x22 = registers[22];
+wire [31:0] reg_x23 = registers[23];
+wire [31:0] reg_x24 = registers[24];
+wire [31:0] reg_x25 = registers[25];
+wire [31:0] reg_x26 = registers[26];
+wire [31:0] reg_x27 = registers[27];
+wire [31:0] reg_x28 = registers[28];
+wire [31:0] reg_x29 = registers[29];
+wire [31:0] reg_x30 = registers[30];
+wire [31:0] reg_x31 = registers[31];
+
+
 
 
 

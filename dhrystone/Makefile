@@ -1,4 +1,4 @@
-USE_MYSTDLIB = 0
+USE_MYSTDLIB = 1
 OBJS = dhry_1.o dhry_2.o stdlib.o
 CFLAGS = -MD -O3 -march=rv32i -DTIME -DRISCV
 TOOLCHAIN_PREFIX = /opt/riscv32i/bin/riscv32-unknown-elf-
@@ -62,7 +62,7 @@ dhry.elf.S: dhry.elf
 dhry_1.o dhry_2.o: CFLAGS += -Wno-implicit-int -Wno-implicit-function-declaration
 
 clean:
-	rm -rf *.o *.d dhry.elf dhry.map dhry.bin dhry.hex testbench.vvp testbench.vcd timing.vvp timing.txt testbench_nola.vvp
+	rm -rf *.o *.d dhry.elf dhry.map dhry.bin dhry.hex testbench.vvp testbench.vcd timing.vvp timing.txt testbench_nola.vvp dhry.elf.S rvfi_mon.txt
 
 .PHONY: test clean
 
