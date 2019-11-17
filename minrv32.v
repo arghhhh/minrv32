@@ -17,10 +17,6 @@
  *
  */
 
-
-
-
-
 `timescale 1 ns / 1 ps
 // `default_nettype none
 // `define DEBUGNETS
@@ -48,47 +44,23 @@
 
 module minrv32 
 (
-
-	  input clk
-	, input resetn
-	, output  trap
-
-
-//	, input      [31:0] pc
-//	, output     [31:0] pc_next
-//	, output            pc_next_valid
+	  input             clk
+	, input             resetn
+	, output            trap
 
 	, output     [31:0] insn_addr
-
-	, input [31:0] insn
-	, input        insn_valid
-/*
-
-	, output     [ 4:0] rs1_addr 
-	, output     [ 4:0] rs2_addr 
-	, output     [ 4:0] rd_addr  
-	, output            rs1_addr_valid
-	, output            rs2_addr_valid
-	, output            rd_addr_valid
-
-	, input      [31:0] rs1_rdata
-	, input      [31:0] rs2_rdata
-	, output     [31:0] rd_wdata
-*/
+	, input      [31:0] insn
+	, input             insn_valid
 
 	, output            mem_valid
 	, output            mem_instr
 	, input             mem_ready
-
 	, output     [31:0] mem_addr
 	, output     [31:0] mem_wdata
 	, output     [ 3:0] mem_wstrb
 	, output     [ 3:0] mem_rmask
 	, input      [31:0] mem_rdata
 
-//	, input      [63:0] csr_time
-//	, input      [63:0] csr_cycle
-//	, input      [63:0] csr_instret
 //
 	// IRQ Interface
 //	input      [31:0] irq,
@@ -132,12 +104,11 @@ module minrv32
 
 );
 
-
+// add the rvfi_monitor if desired (for debugging):
 `ifdef RVFI_MONITOR
-
 rvfi_monitor rvfi_monitor(
     /*  input           */  .clk                      ( clk                     )  ,
-    /*  input           */  .reset                    ( !resetn                   )  ,
+    /*  input           */  .reset                    ( !resetn                 )  ,
 	/*  input           */  .rvfi_valid               ( rvfi_valid              )  ,
 	/*  input   [63:0]  */  .rvfi_order               ( rvfi_order              )  ,
 	/*  input   [31:0]  */  .rvfi_insn                ( rvfi_insn               )  ,
@@ -168,22 +139,19 @@ rvfi_monitor rvfi_monitor(
 	/*  input   [63:0]  */  .rvfi_csr_minstret_rdata  ( rvfi_csr_minstret_rdata )  ,
 	/*  input   [63:0]  */  .rvfi_csr_minstret_wdata  ( rvfi_csr_minstret_wdata )  
 );
-
 `endif
 
-//	wire  insn_valid = 1 ;  // for now, insn is always valid
-	wire  rs1_ready   ;
-	wire  rs2_ready   ;
-	wire  rd_ready  = 1  ;  // for now, write destination is always ready
+
+wire  rs1_ready   ;
+wire  rs2_ready   ;
+wire  rd_ready  = 1  ;  // for now, write destination is always ready
+wire  insn_complete;
 
 
-
-
+// implement the required CSRs - also needed for benchmarking...
 reg [63:0]  csr_cycle;
 reg [63:0]  csr_time;
 reg [63:0]  csr_instret;
-
-wire insn_complete;
 
 always @(posedge clk) begin
 	if ( !resetn ) begin
@@ -198,19 +166,17 @@ always @(posedge clk) begin
 end
 
 localparam PROGADDR_RESET = 'h10000;
+
+// hardware should not need to know about the STACKADDR.  This will be removed...
 localparam STACKADDR      = 'h10000;
 
-
-
-reg [31:0] pc;
+reg  [31:0] pc;
 wire [31:0] pc_next;
 
 initial pc = PROGADDR_RESET;
 always @(posedge clk) begin
 	pc <= resetn ? ( insn_complete ? pc_next : pc ) : PROGADDR_RESET;
 end
-
-
 
 wire  [ 4:0] rs1_addr         ;
 wire  [ 4:0] rs2_addr         ;
@@ -231,7 +197,6 @@ reg [31:0] registers [ 0:31 ];
 always @(posedge clk) begin
 	if ( !resetn ) begin
 		registers[ 0] <= 0;
-
 // use USE_MYSTDLIB in Makefile to avoid needing the stack pointer to be set in hardware
 // I think the bootloader would deal with setting the stack pointer otherwise...
 // .. but there is no bootloader.
@@ -242,6 +207,7 @@ always @(posedge clk) begin
 	end
 end
 
+// these are only needed to enable GTKwave to see the register contents
 wire [31:0] reg_x0  = registers[ 0];
 wire [31:0] reg_x1  = registers[ 1];
 wire [31:0] reg_x2  = registers[ 2];
@@ -276,14 +242,7 @@ wire [31:0] reg_x30 = registers[30];
 wire [31:0] reg_x31 = registers[31];
 
 
-
-
-
-// Add trace using the RVFI interface
-// dump out the first few instructions in using cache and not, and compare...
-
 `define USECACHE2
-
 
 `ifdef USECACHE0
 // combinatorial version:
@@ -297,17 +256,13 @@ assign rs2_ready = 1;
 
 `ifdef USECACHE1
 
-
 // very simple cache to begin with
 // just the two register reads for now.
-
 
 reg [31:0] cache_rs1;
 reg [31:0] cache_rs2;
 reg [31:0] cache_rs1_next;
 reg [31:0] cache_rs2_next;
-
-
 
 reg [4:0]  rs_addr;
 wire [31:0] rs_rdata;
@@ -349,7 +304,6 @@ always @(*) begin
 	end
 end
 
-
 assign rs1_rdata = cache_rs1;
 assign rs2_rdata = cache_rs2;
 
@@ -368,21 +322,14 @@ end else begin
 	cache_rs2 <= cache_rs2_next;
 end
 
-
-assign  rs_rdata = registers[ rs_addr ];
-
-
+assign rs_rdata = registers[ rs_addr ];
 assign cache_clear_next = insn_complete;
-
 assign rs1_ready = cache_rs1_valid;
 assign rs2_ready = cache_rs2_valid;
 
 `endif
 
 `ifdef USECACHE2
-
-
-
 
 wire [2:0] rs1_state_readyIn;
 wire [2:0] rs2_state_readyIn;
@@ -418,9 +365,8 @@ assign rs1_state_readyIn[0] = rs1_addr_valid && arb_readyOut[0];
 assign arb_readyIn[1]       = rs2_addr_valid && rs2_state_readyOut[0];
 assign rs2_state_readyIn[0] = rs2_addr_valid && arb_readyOut[1];
 
-//assign rs1_state_readyIn[1] = arb_readyOut[0];  // combinatorial memory read
-//assign rs2_state_readyIn[1] = arb_readyOut[1];  // combinatorial memory read
-
+// the pipeline delay for memory responses is parameterised..
+// use 0 for combinatorial (useful for checking, but not usually practical in hardware..)
 localparam mem_delay = 3;
 
 pipeline_resetable #( .Nbits(2), .Nstages(mem_delay) ) reg_responses_pipeline ( 
@@ -430,13 +376,11 @@ pipeline_resetable #( .Nbits(2), .Nstages(mem_delay) ) reg_responses_pipeline (
 	, .resetn( resetn ) 
 	);
 
-
 assign rs1_state_readyIn[2] = insn_complete;
 assign rs2_state_readyIn[2] = insn_complete;
 
 assign rs1_ready = rs1_state_readyOut[2];
 assign rs2_ready = rs2_state_readyOut[2];
-
 
 wire [4:0] rs_addr;
 
@@ -457,14 +401,7 @@ wire rs2_reg_en = rs2_state_readyIn && rs2_state_readyOut;
 register #(32) rs1( .in( rs_data ), .out( rs1_rdata ), .enable( rs1_reg_en ), .clk( clk) );
 register #(32) rs2( .in( rs_data ), .out( rs2_rdata ), .enable( rs2_reg_en ), .clk( clk) );
 
-
 `endif
-
-
-
-
-
-
 
 wire [3:0] mem_wstrb1;
 assign mem_wstrb = insn_complete ? mem_wstrb1 : 0;
@@ -544,39 +481,3 @@ comb_rv32 comb_rv32 (
 );
 
 endmodule
-
-/*
-module #( parameter integer N = 1 ) priority_arbiter (
-	  input      [N-1:0] req
-	, output reg [N-1:0] grant
-);
-integer i;
-	always @(*) begin
-		grant = 0;
-		for( i=N-1: i >= 0; i = i-1 ) begin
-			if ( req[i] ) begin
-				grant[i] = 1;
-				break;
-			end
-		end
-	end
-endmodule
-
-module #( parameter integer N, parameter integer W) one_hot_mux (
-	  input  [N-1:0]        select
-	, input  [N-1:0][W-1:0] in
-	, output reg    [W-1:0] out
-);
-integer i;
-	out = 0;
-	always @(*) begin
-		out = 0;
-		for( i=N-1: i >= 0; i = i-1 ) begin
-			if ( sel[i] ) begin
-				out = out | in[i][W-1:0]
-			end
-		end
-	end
-endmodule
-*/
-

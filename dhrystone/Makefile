@@ -26,7 +26,7 @@ timing.txt: timing.vvp dhry.hex
 	vvp -N timing.vvp > timing.txt
 
 testbench.vvp: testbench.v $(VERILOG_SRCS)
-	iverilog -DRVFI_MONITOR -o testbench.vvp testbench.v $(VERILOG_SRCS)
+	iverilog -DRVFI_MONITOR -DDEBUG_VALID -o testbench.vvp testbench.v $(VERILOG_SRCS)
 	chmod -x testbench.vvp
 
 testbench_nola.vvp: testbench_nola.v ../minrv32.v
