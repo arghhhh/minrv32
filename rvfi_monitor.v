@@ -205,7 +205,7 @@ wire [3:0] mem_wstrb;
 
 
 
-minrv32_combinatorial minrv32_combinatorial (
+comb_rv32 comb_rv32 (
 
 	  .trap            ( expect_trap           )
 	, .pc              ( rvfi_pc_rdata         ) // from incoming RVFI

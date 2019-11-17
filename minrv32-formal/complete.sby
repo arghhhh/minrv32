@@ -17,6 +17,7 @@ verilog_defines -D RISCV_FORMAL_ILEN=32
 # verilog_defines -D RISCV_FORMAL_ALIGNED_MEM
 read_verilog -sv rvfi_macros.vh
 read_verilog minlib.v
+read_verilog comb_rv32.v
 read_verilog -sv minrv32.v
 
 --pycode-begin--
@@ -32,6 +33,7 @@ prep -nordff -top testbench
 [files]
 complete.sv
 ../minlib.v
+../comb_rv32.v
 ../minrv32.v
 ../../riscv-formal/checks/rvfi_macros.vh
 ../../riscv-formal/insns/isa_rv32i.v

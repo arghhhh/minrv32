@@ -3,7 +3,7 @@ OBJS = dhry_1.o dhry_2.o stdlib.o
 CFLAGS = -MD -O3 -march=rv32i -DTIME -DRISCV
 TOOLCHAIN_PREFIX = /opt/riscv32i/bin/riscv32-unknown-elf-
 
-VERILOG_SRCS = ../minlib.v ../minrv32.v ../rvfi_monitor.v
+VERILOG_SRCS = ../minlib.v ../comb_rv32.v ../minrv32.v ../rvfi_monitor.v
 
 ifeq ($(USE_MYSTDLIB),1)
 CFLAGS += -DUSE_MYSTDLIB -ffreestanding -nostdlib

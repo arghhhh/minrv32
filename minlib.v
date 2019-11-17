@@ -1,6 +1,16 @@
 
 
 
+
+//`define DEBUG_VALID
+
+`ifdef DEBUG_VALID
+`define valid_data_or_x( valid, data ) ( (valid)?(data) : 'z )
+`else
+`define valid_data_or_x( valid, data ) ( data )
+`endif
+
+
 module priority_arb #( parameter integer N = 1 ) (
       input [N-1:0] readyIn
     , output [N-1:0] readyOut

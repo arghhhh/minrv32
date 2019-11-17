@@ -13,6 +13,7 @@ verilog_defines -D RISCV_FORMAL_ILEN=32
 verilog_defines -D RISCV_FORMAL_ALIGNED_MEM
 read_verilog rvfi_macros.vh
 read_verilog minlib.v
+read_verilog comb_rv32.v
 read_verilog minrv32.v
 read_verilog -sv -formal cover.sv
 prep -nordff -top testbench
@@ -20,5 +21,6 @@ prep -nordff -top testbench
 [files]
 ../../riscv-formal/checks/rvfi_macros.vh
 ../minlib.v
+../comb_rv32.v
 ../minrv32.v
 cover.sv
