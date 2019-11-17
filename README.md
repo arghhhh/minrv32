@@ -40,6 +40,21 @@ ALU optimizations such as replacing the barrel-shifter with a sequential alterna
 
 The next stage in the implementation process is to add handshaking to each of the memory ports (instruction read, data read, data write, register `rs1` read, register `rs2` read, register `rd` write).  This will then allow an arbiter to be used to make the memory access sequential through a single port.
 
+## Adding source files
+Each new .v file added, needs to be added to 
+
+VERILOG_SRCS in [dhrystone/makefile](dhrystone/makefile)
+
+Under [script-sources] in [minrv32-formal/checks.cfg](minrv32-formal/checks.cfg)
+
+Add a read_verilog under [script] and the path under [files] in each of
+
+  [minrv32-formal/complete.sby](minrv32-formal/complete.sby)
+  
+  [minrv32-formal/cover.sby](minrv32-formal/cover.sby)
+  
+
+
 ## minrv32-formal Formal Checking
 
 This requires that riscv-formal (https://github.com/SymbioticEDA/riscv-formal) be installed in a sibling directory (beside the minrv32 directory, at the same heirarchical level).  The stuff in minrv32-formal is similar to the corresponding stuff in picrorv32 directory in riscv-formal: https://github.com/SymbioticEDA/riscv-formal/tree/master/cores/picorv32.  I have added a makefile.  All the instruction checks pass (`make checks`), but some of the other ones don't yet - why TBD.
