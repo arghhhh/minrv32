@@ -3,6 +3,8 @@
 
 This is my take on a small RISC-V implementation....
 
+[orconf 2019 lightning talk introducing this](https://www.youtube.com/watch?v=zy0Y6kQW8Vw&list=PLUg3wIOWD8yodkHgXWGSHQdKACu9MWepT&index=27)
+
 It is currently just a combinatorial RISC-V ISA decode, that makes some pretty unrealistic assumptions on the supporting hardware - such as instruction and data memory (multi-ported, combinatorial read paths) and the register file.  This is very much a work in progress towards having an implementation that does not require a register file and uses a single memory for program, data **and register** contents.
 
 # Goal - some interesting microarchitectures
