@@ -119,6 +119,29 @@ module comb_rv32 #(
 `endif
 
 );
+	wire [1:0] c_insn_field_opcode   = insn[1:0];
+	wire [5:0] c_insn_field_funct6   = insn[15:10];
+	wire [2:0] c_insn_field_funct1_2 = {insn[12], insn[6:5]};
+	wire [2:0] c_insn_field_funct3   = insn[15:13];
+	wire [1:0] c_insn_field_funct2   = insn[11:10];
+	wire       c_insn_field_funct    = insn[12];
+
+    wire [4:0] c_insn_field_rs1 = (insn[1:0] == 2'b00 || ({insn[15], insn[1:0]} == 3'b101 && (insn[14:13] != 2'b01))) ? {2'b01, insn[9:7]} : insn[11:7];
+    wire [4:0] c_insn_field_rs2 = (insn[1:0] == 2'b00 || {insn[15:13], insn[1:0]} == 5'b10001) ? {2'b01, insn[4:2]}: insn[6:2];
+    wire [4:0] c_insn_field_rd  = (insn[1:0] == 2'b00) ? c_insn_field_rs2 : c_insn_field_rs1;
+
+    reg  [4:0] c_rs1_addr;
+    reg  [4:0] c_rd_addr;
+
+    wire [31:0] signed_immediate_6bit    = {{27{insn[12]}}, insn[6:2]};
+    wire [31:0] unsigned_immediate_6bit  = {26'b0, insn[12], insn[6:2]};
+    wire [31:0] immediate_LWSP           = {insn[3:2], insn[12], insn[6:4], 2'b0};
+    wire [31:0] immediate_SWSP           = {insn[8:7], insn[12:9], 2'b0};
+    wire [31:0] immediate_c_LW_SW        = {25'b0, insn[5], insn[12:10], insn[6], 2'b0};
+    wire [31:0] immediate_ADDI4SPN       = {22'b0, insn[10:7], insn[12:11], insn[5], insn[6], 2'b0};
+    wire [31:0] immediate_ADDI16SP       = {{23{insn[12]}}, insn[4:3], insn[5], insn[2], insn[6], 4'b0};
+    wire [31:0] immediate_for_branches_c = {{24{insn[12]}}, insn[6:5], insn[2], insn[11:10], insn[4:3], 1'b0};
+	wire [31:0] immediate_c_J            = {{21{insn[12]}}, insn[8], insn[10], insn[9], insn[6], insn[7], insn[2], insn[11], insn[5:3], 1'b0};
 
 
 	reg rs1_addr_valid;
@@ -126,9 +149,9 @@ module comb_rv32 #(
 	reg rd_addr_valid;
 
 
-assign rs1_request = rs1_addr_valid && ( rs1_addr != 0 );
-assign rs2_request = rs2_addr_valid && ( rs2_addr != 0 );
-assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
+	assign rs1_request = rs1_addr_valid && ( rs1_addr != 0 );
+	assign rs2_request = rs2_addr_valid && ( rs2_addr != 0 );
+	assign rd_request  = rd_addr_valid  && ( rd_addr != 0  );
 
 
 	assign insn_addr = { pc[31:1], 1'b0 };
@@ -148,12 +171,14 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 	wire [4:0] insn_field_rs2    = insn[24:20];
 
 
-	assign rs1_addr = rs1_addr_valid ? insn_field_rs1 : 5'b0;
-	assign rs2_addr = rs2_addr_valid ? insn_field_rs2 : 5'b0;
-	assign rd_addr  = rd_addr_valid  ? insn_field_rd : 5'b0;
+	assign rs1_addr = rs1_addr_valid ? (c_insn_field_opcode == 2'b11) ? insn_field_rs1 : c_rs1_addr : 5'b0;
+	assign rs2_addr = rs2_addr_valid ? (c_insn_field_opcode == 2'b11) ? insn_field_rs2 : c_insn_field_rs2 : 5'b0;
+	assign rd_addr  = rd_addr_valid  ? (c_insn_field_opcode == 2'b11) ? insn_field_rd  : c_rd_addr  : 5'b0;
 
 	reg [31:0] rs1_value ;
 	reg [31:0] rs2_value ;
+	reg [31:0] c_rs1_value ;
+	reg [31:0] c_rs2_value ;
 
 //	reg [3:0] mem_wmask
 //	assign mem_wstrb = mem_wmask;
@@ -167,9 +192,9 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 	assign rvfi_rs2_addr   = `valid_data_or_x( rvfi_valid && rs2_addr != 0, rs2_addr  );
 	assign rvfi_rd_addr    = `valid_data_or_x( rvfi_valid, rd_addr   );
 
-	assign rvfi_rs1_rdata  = `valid_data_or_x( rvfi_valid && rs1_addr != 0, ( rs1_addr_valid )                          ? rs1_value : 32'b0 );
-	assign rvfi_rs2_rdata  = `valid_data_or_x( rvfi_valid && rs2_addr != 0, ( rs2_addr_valid )                          ? rs2_value : 32'b0 );
-	assign rvfi_rd_wdata   = `valid_data_or_x( rvfi_valid, ( rd_addr_valid && ( insn_field_rd != 0 ) ) ? rd_wdata  : 32'b0 );
+	assign rvfi_rs1_rdata  = `valid_data_or_x( rvfi_valid && rs1_addr != 0, ( rs1_addr_valid ) ? ((c_insn_field_opcode == 2'b11) ? rs1_value : c_rs1_value) : 32'b0 );
+	assign rvfi_rs2_rdata  = `valid_data_or_x( rvfi_valid && rs2_addr != 0, ( rs2_addr_valid ) ? ((c_insn_field_opcode == 2'b11) ? rs2_value : c_rs2_value) : 32'b0 );
+	assign rvfi_rd_wdata   = `valid_data_or_x( rvfi_valid, ( rd_addr_valid && ( rd_addr != 0 ) ) ? rd_wdata  : 32'b0 );
 
 	// even the combo version might not complete in one cycle if mem_ready is held low...
 	assign rvfi_valid      = insn_complete        ;
@@ -197,17 +222,20 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 
 	reg is_alu_immediate;
 
-	wire [31:0] immediate_12bit = { {20{insn[31]}}, insn[31:20] };
-	wire [31:0] immediate_12bit_for_stores = { immediate_12bit[31:5], insn[11:7] };
-	wire [31:0] immediate_for_jal = { {12{insn[31]}}, insn[19:12], insn[20], insn[30:21], 1'b0 };
-	wire [31:0] immediate_for_branches = { {20{insn[31]}}, insn[7], insn[ 30:25], insn[11:8], 1'b0 };
+	wire [31:0] immediate_12bit            = {{20{insn[31]}}, insn[31:20]};
+	wire [31:0] immediate_12bit_for_stores = {immediate_12bit[31:5], insn[11:7]};
+	wire [31:0] immediate_for_jal          = {{12{insn[31]}}, insn[19:12], insn[20], insn[30:21], 1'b0};
+	wire [31:0] immediate_for_branches     = {{20{insn[31]}}, insn[7], insn[ 30:25], insn[11:8], 1'b0};
 
-	wire [31:0] pc_next_no_branch = insn_addr + 4;
-	wire [31:0] pc_next_branch = ( insn_addr + immediate_for_branches ) & 32'hFFFF_FFFE;
+	wire [31:0] pc_next_no_branch = (c_insn_field_opcode == 2'b11) ? insn_addr + 4 : insn_addr + 2;
+	wire [31:0] pc_next_branch    = (insn_addr + immediate_for_branches)   & 32'hFFFF_FFFE;
+	wire [31:0] pc_next_branch_c  = (insn_addr + immediate_for_branches_c) & 32'hFFFF_FFFE;
 
 
-	wire cond_eq  = rs1_value == rs2_value ;
-	wire cond_neq = rs1_value != rs2_value ;
+	wire cond_eq   = rs1_value == rs2_value ;
+	wire cond_neq  = rs1_value != rs2_value ;
+	wire cond_eqz  = rs1_value == 0 ;
+	wire cond_neqz = rs1_value != 0 ;
 	wire cond_lt  = ( rs1_value ^ 32'h8000_0000 ) < ( rs2_value ^ 32'h8000_0000 ) ;
 	wire cond_ge  = !cond_lt;
 	wire cond_ltu = rs1_value < rs2_value;
@@ -232,8 +260,13 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 
 		is_alu_immediate = 0;
 
-		rs1_value = ( insn_field_rs1 == 0 ) ? 0 : rs1_rdata;
-		rs2_value = ( insn_field_rs2 == 0 ) ? 0 : rs2_rdata;  // may override this for immediate instructions
+		rs1_value   = (insn_field_rs1 == 0) ? 0 : rs1_rdata;
+		rs2_value   = (insn_field_rs2 == 0) ? 0 : rs2_rdata;  // may override this for immediate instructions
+		c_rs1_value = (c_insn_field_rs1 == 0) ? 0 : rs1_rdata;
+		c_rs2_value = (c_insn_field_rs2 == 0) ? 0 : rs2_rdata;
+
+        c_rs1_addr  = c_insn_field_rs1;
+        c_rd_addr   = c_insn_field_rd;
 
 		mem_valid = 0;
 		mem_instr = 0;
@@ -260,7 +293,7 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 				rd_wdata = pc_next_no_branch;
 				pc_next = insn_addr + immediate_for_jal;
 				pc_next_valid = insn_complete;
-				gen_trap = |pc_next[1:0];
+				// gen_trap = |pc_next[1:0];
 			end
 			if (insn_field_opcode == 7'b 11_001_11) begin // JALR jump and link register
 				if (  insn_field_funct3 == 3'b 000 ) begin
@@ -269,7 +302,7 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 					rd_addr_valid  = 1 ;
 					rd_wdata = pc_next_no_branch;
 					pc_next = ( rs1_value + immediate_12bit ) & 32'hFFFF_FFFE;
-					gen_trap = |pc_next[1:0];
+					// gen_trap = |pc_next[1:0];
 				end
 			end
 
@@ -288,7 +321,7 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 						pc_next = pc_next_branch;
 					end
 				pc_next_valid = insn_complete;
-				gen_trap = |pc_next[1:0];
+				// gen_trap = |pc_next[1:0];
 			end
 
 			if (insn_field_opcode == 7'b 00_000_11) begin // LOAD
@@ -450,6 +483,242 @@ assign rd_request  = rd_addr_valid && ( rd_addr != 0 );
 					endcase
 					end
 			end
+            /*******************Compressed Instructions****************************/
+			if (c_insn_field_opcode == 2'b00) begin // C0
+				case (c_insn_field_funct3) 
+					3'b000: begin // C.ADDI4SPN
+                        c_rs1_addr = 5'b00010;
+                        rs1_addr_valid = 1;
+                        rd_addr_valid = 1;
+                        insn_decode_valid = 1;
+                        rd_wdata = c_rs1_value + immediate_ADDI4SPN;
+					end
+					3'b010: begin // C.LW
+						insn_decode_valid = 1;
+						mem_valid = 1;
+						rs1_addr_valid = 1;
+						rd_addr_valid  = 1;  
+						rd_wdata = mem_rdata;
+						mem_rmask = 4'b1111;
+						mem_addr = c_rs1_value + immediate_c_LW_SW;
+					end
+					3'b110: begin // C.SW				
+                        insn_decode_valid = 1;
+						mem_valid = 1;
+						rs1_addr_valid = 1;
+						rs2_addr_valid = 1;
+						mem_wdata = c_rs2_value;
+						mem_addr = c_rs1_value + immediate_c_LW_SW;
+						mem_wstrb = 4'b1111;
+					end
+					default: begin
+						insn_decode_valid = 0;
+						mem_valid = 0;
+						rs1_addr_valid = 0;
+						rd_addr_valid  = 0;  
+						rd_wdata = 0;
+						mem_rmask = 0;
+						mem_addr = 0;						
+					end
+				endcase
+			end
+			else if (c_insn_field_opcode == 2'b01) begin // C1
+				case (c_insn_field_funct3) 
+					3'b000: begin // C.ADDI
+                        rs1_addr_valid = 1;
+                        rd_addr_valid  = 1;
+                        insn_decode_valid = 1;
+                        rd_wdata = c_rs1_value + signed_immediate_6bit;
+					end
+					3'b001: begin // C.JAL
+						c_rd_addr = 5'b00001;
+						insn_decode_valid = 1;
+						rd_addr_valid  = 1;
+						rd_wdata = pc_next_no_branch;
+						pc_next = insn_addr + immediate_c_J;
+						pc_next_valid = insn_complete;
+					end
+					3'b010: begin // C.LI 
+						rd_addr_valid = 1;
+						insn_decode_valid = 1;
+						rd_wdata = signed_immediate_6bit;
+					end
+					3'b011: begin // C.LUI or C.ADDI16SP
+                        if (c_insn_field_rd == 2) begin // C.ADDI16SP
+                            c_rd_addr = 5'b00010;
+                            rs1_addr_valid = 1;
+                            rd_addr_valid = 1;
+                            insn_decode_valid = 1;
+                            rd_wdata = c_rs1_value + immediate_ADDI16SP;
+                        end else begin // C.LUI
+						    rd_addr_valid = 1;
+                            insn_decode_valid = 1;
+                            rd_wdata = {signed_immediate_6bit[19:0], 12'b0};
+                        end
+					end
+					3'b100: begin
+						case (c_insn_field_funct2)
+							2'b00: begin // C.SRLI
+								rs1_addr_valid = 1;
+								rd_addr_valid  = 1;
+								insn_decode_valid = 1;  
+								rd_wdata = c_rs1_value >> {16'b0, unsigned_immediate_6bit[4:0]};
+							end
+							2'b01: begin // C.SRAI
+								if(unsigned_immediate_6bit[5] == 0) begin
+									rs1_addr_valid = 1;
+									rd_addr_valid  = 1;
+									insn_decode_valid = 1; 
+									rd_wdata = ({{32{rs1_value[31]}}, c_rs1_value} >> unsigned_immediate_6bit[4:0]);
+								end
+							end
+							2'b10:  begin // C.ANDI
+							    rs1_addr_valid = 1;
+								rd_addr_valid  = 1;
+								insn_decode_valid = 1;
+								rd_wdata = c_rs1_value & signed_immediate_6bit;
+							end
+							2'b11: begin
+								case (c_insn_field_funct1_2)
+									3'b000: begin // C.SUB
+										rs1_addr_valid = 1;
+										rs2_addr_valid = 1;
+										rd_addr_valid = 1;
+										insn_decode_valid = 1;
+										rd_wdata = c_rs1_value - c_rs2_value;
+									end
+									3'b001: begin // C.XOR
+										rs1_addr_valid = 1;
+										rs2_addr_valid = 1;
+										rd_addr_valid = 1;
+										insn_decode_valid = 1;
+										rd_wdata = c_rs1_value ^ c_rs2_value;
+									end
+									3'b010: begin // C.OR
+										rs1_addr_valid = 1;
+										rs2_addr_valid = 1;
+										rd_addr_valid = 1;
+										insn_decode_valid = 1;
+										rd_wdata = c_rs1_value | c_rs2_value;
+									end
+									3'b011: begin // C.AND
+										rs1_addr_valid = 1;
+										rs2_addr_valid = 1;
+										rd_addr_valid = 1;
+										insn_decode_valid = 1;
+										rd_wdata = c_rs1_value & c_rs2_value;
+									end
+									default: begin
+										rs1_addr_valid = 0;
+										rs2_addr_valid = 0;
+										rd_addr_valid = 0;
+										insn_decode_valid = 0;
+										rd_wdata = 32'b0;
+									end
+								endcase
+							end
+						endcase
+					end
+					3'b101: begin // C.J
+						insn_decode_valid = 1; 
+						pc_next = insn_addr + immediate_c_J;
+						pc_next_valid = insn_complete;
+					end
+					3'b110: begin // C.BEZ
+						insn_decode_valid = 1;
+						rs1_addr_valid = 1 ;
+						if(cond_eqz) begin
+							pc_next = pc_next_branch_c;
+						end
+						pc_next_valid = insn_complete;
+					end
+					3'b111: begin // C.BNEZ 
+						insn_decode_valid = 1;
+						rs1_addr_valid = 1 ;
+						if(cond_neqz) begin
+							pc_next = pc_next_branch_c;
+						end
+						pc_next_valid = insn_complete;
+					end
+				endcase
+			end
+			else if (c_insn_field_opcode == 2'b10) begin // C2
+				case (c_insn_field_funct3) 
+					3'b000: begin // C.SLLI
+                        if (unsigned_immediate_6bit[5] == 0) begin
+                            rs1_addr_valid = 1;
+                            rd_addr_valid  = 1;
+                            insn_decode_valid = 1;  
+                            rd_wdata = c_rs1_value << unsigned_immediate_6bit[4:0];
+                        end
+					end
+					3'b010: begin // C.LWSP
+						c_rs1_addr = 5'b00010;
+						insn_decode_valid = 1;
+						mem_valid = 1;
+						rs1_addr_valid = 1;
+						rd_addr_valid  = 1;  
+						mem_addr = c_rs1_value + immediate_LWSP;
+						mem_rmask = 4'b1111;
+						rd_wdata = mem_rdata;
+					end
+					3'b100: begin
+						case (c_insn_field_funct)
+							1'b0: begin // C.JR or C.MV
+								if (insn[6:2] == 5'b00000) begin  // C.JR
+									rs1_addr_valid = 1;
+									insn_decode_valid = 1; 
+									pc_next = c_rs1_value & 32'hFFFF_FFFE;
+									pc_next_valid = insn_complete;
+								end else begin	                  // C.MV
+									rs2_addr_valid = 1;
+									rd_addr_valid = 1;
+									insn_decode_valid = 1;
+									rd_wdata = c_rs2_value;
+								end
+							end 
+							1'b1: begin // C.JALR or C.ADD
+                                if (c_insn_field_rs2 == 0) begin // C.JALR
+                                    c_rd_addr = 5'b00001;
+                                    rs1_addr_valid = 1;
+                                    rd_addr_valid = 1;
+                                    rd_wdata = pc_next_no_branch;
+                                    insn_decode_valid = 1;
+                                    pc_next = c_rs1_value & 32'hFFFF_FFFE;
+                                    pc_next_valid = insn_complete;
+                                end else begin                   // C.ADD
+                                    rs1_addr_valid = 1;
+                                    rs2_addr_valid = 1;
+                                    rd_addr_valid  = 1;
+                                    insn_decode_valid = 1;
+                                    rd_wdata = c_rs1_value + c_rs2_value;
+                                end
+							end
+						endcase
+					end
+					3'b110: begin // C.SWSP
+						c_rs1_addr = 5'b00010;
+						insn_decode_valid = 1;
+						mem_valid = 1;
+						rs1_addr_valid = 1;
+						rs2_addr_valid = 1;
+						mem_addr = c_rs1_value + immediate_SWSP;
+						mem_wdata = c_rs2_value;
+						mem_wstrb = 4'b1111;
+					end
+					default: begin
+						c_rs1_addr = 0;
+						insn_decode_valid = 0;
+						mem_valid = 0;
+						rs1_addr_valid = 0;
+						rd_addr_valid  = 0;  
+						mem_addr = 0;
+						mem_rmask = 0;
+						rd_wdata = 0;
+					end
+				endcase			
+			end
+            /**********************************************************************/
 		end
 		if ( trap ) begin
 			pc_next = pc; // this will lock up the simulation, but prevents it doing stuff it shouldn't
