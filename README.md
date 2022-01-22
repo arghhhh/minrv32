@@ -40,7 +40,7 @@ By having multiple banks of registers mapped in memory (page-zero, page-one, pag
 
 Zero-page etc not implemented.
 
-Currently only rv32i.  Compressed instuctions will follow. 
+Now compressed instructions (rv32ic) are done.
 
 Adapted from Clifford Wolf's picrorc32 :  https://github.com/cliffordwolf/picorv32
 
